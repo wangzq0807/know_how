@@ -45,7 +45,7 @@ gdt_table: .word 0, 0, 0, 0
 idt_ptr: .word 0
 	.word 0, 0
 
-gdt_ptr: .word 0x7ff		/* 2^11 = 2048, 256项 */
+gdt_ptr: .word 0x7ff			/* 2^11 = 2048, 256项 */
 	.word 0x7c00+gdt_table, 0	/* base = 0x7xxx */
 
 	.org 510				/*将下一条语句放置到代码段510的位置*/
