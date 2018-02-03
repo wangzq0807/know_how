@@ -12,7 +12,10 @@ BOOTSEG		= 0x07C0
  */
 .global _start
 _start:
-	jmpl $BOOTSEG, $_start2	/*长跳转 $代码段,$偏移量；跳转后改变cs值为0x7c0*/
+	jmpl $BOOTSEG, $_start2	/* 长跳转 `$代码段,$偏移量`；跳转后改变cs值为0x7c0 */
+							/* 直接以$_start2作为偏移量是不严谨的，更一般的做法是$(_start2 - _start) */
+							/* 在Makefile中指定了`-Ttext 0x00`也就是说_start的值为0，*/
+							/* 因此$(_start2 - _start) == $_start2*/
 _start2:
 	movw %cs, %ax
 	movw %ax, %ds
