@@ -1,4 +1,5 @@
 .code32
+.global start_main
 
 .text
 .global _start
@@ -21,8 +22,11 @@ _start:
 
 task1:
 	movw $0x23, %ax
-	movw %ax, %ds
-    jmp loop1
+	movw %ax, %ds				/* 设置数据段 */
+    pushl $0
+	pushl $0
+	call start_main
+	jmp loop1
 
 /* 全局描述符表 */
 gdt_ptr: .word 0x7ff			/* 2^11 = 2048, 256项 */
@@ -103,7 +107,6 @@ tss1_stack0:
 tss1_stack3:
     .long tss1_stack3       /* 偏移地址 */
 	.word 0x23
-
 
 loop1:
     jmp loop1
