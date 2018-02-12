@@ -24,9 +24,9 @@ _start:
 	movl $idt_tab, %ebx			/*idt 基地址 */
 	movl $0x80, %eax			/* 变址 */
 	leal 0(%ebx, %eax, 8), %esi	/* 使si指向陷阱门 */
-	movw $write_char, 0(%si)	/* 陷阱门:偏移地址 */
-	movw $0x08, 2(%si)			/* 陷阱门:代码段选择符 */
-	movl $0xef00, 4(%si)		/* 陷阱门:特权3 */
+	movw $write_char, 0(%esi)	/* 陷阱门:偏移地址 */
+	movw $0x08, 2(%esi)			/* 陷阱门:代码段选择符 */
+	movl $0xef00, 4(%esi)		/* 陷阱门:特权3 */
 
 	/* 移动到用户态 */
 	movw $0x28, %ax
