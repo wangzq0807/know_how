@@ -58,10 +58,6 @@ idt_ptr:
 idt_tab: .fill 256, 8, 0    # 中断描述符表
 
 setup_idt:
-    pushl %eax
-    pushl %ebx
-    pushl %ecx
-    pushl %edx
     movl $0x00008e00, %eax
     movl $0x00080000, %ebx
     lea timer_interrupt, %bx
@@ -73,31 +69,29 @@ _rep_set:
     addl $8, %edx
     dec %ecx
     jne _rep_set                    # ZF标志为0则跳转
-    popl %edx
-    popl %ecx
-    popl %ebx
-    popl %eax
     ret
 setup_timer:
-    pushl %eax
-    pushl %edx
-	movb $0x36, %al
-	movl $0x43, %edx
+	movb $0x36, %al			# 8253控制字, 方式3，计数器0
+	movl $0x43, %edx		# 写入
 	outb %al, %dx
-	movl $11930, %eax        # timer frequency 100 HZ 
-	movl $0x40, %edx
+	movl $119300, %eax      # 8253计数初值,每0.1s触发一次,8253频率1193000HZ
+	movl $0x40, %edx		# 写入计数器0
 	outb %al, %dx
 	movb %ah, %al
 	outb %al, %dx
-    popl %edx
-    popl %eax
     ret
 
 timer_interrupt:
+	push %ds
     pushl %eax
+	movl $0x10, %eax
+	mov  %ax, %ds
+	movl $0x20, %eax		# 设置8259A的OCW2,发送结束中断命令
+	outb %al, $0x20
     movl $0x43, %eax
     call write_char
     popl %eax
+	pop %ds
     iret
 
 /* 当前光标位置 */
