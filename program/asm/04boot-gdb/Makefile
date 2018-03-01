@@ -25,11 +25,10 @@ head.elf : head.o main.o
 	ld -m elf_i386 -Ttext 0x00 head.o main.o -o head.elf
 head.o : head.S
 	# --32 : 32位程序
-	as -o head.o head.S --32
+	gcc -c -m32 -o head.o head.S
 main.o : main.c
-	gcc -S -m32 -o main.s main.c
-	gcc -c -m32 -o main.o main.s
+	gcc -g -O0 -c -m32 -o main.o main.c
 
 .PHONY:
 clean:
-	rm boot.img boot.elf boot.o head.img head.elf head.o floopy.img main.s main.o
+	rm boot.img boot.elf boot.o head.img head.elf head.o floopy.img main.o
