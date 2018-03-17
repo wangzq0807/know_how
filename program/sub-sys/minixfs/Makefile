@@ -1,6 +1,6 @@
 CC = gcc
 LD = ld
-CFLAGS = -m32 -Wall -O0
+CFLAGS = -m32 -Wall -g -O2
 LDFLAGS = -m elf_i386
 SRCS = main.c
 OBJECTS = boot.o head.o main.o
@@ -32,4 +32,4 @@ clean:
 	rm -f boot.img kernel.img boot kernel $(OBJECTS)
 # DO NOT DELETE
 
-main.o: defs.h
+main.o: defs.h asm.h
