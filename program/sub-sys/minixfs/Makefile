@@ -2,8 +2,8 @@ CC = gcc
 LD = ld
 CFLAGS = -m32 -Wall -g -O2
 LDFLAGS = -m elf_i386
-SRCS = main.c
-OBJECTS = boot.o head.o main.o
+SRCS = hard_disk.c main.c
+OBJECTS = head.o main.o hard_disk.o
 
 hd.img : boot kernel
 	objcopy -j .text -O binary boot boot.img
@@ -18,10 +18,10 @@ hd.img : boot kernel
 	$(CC) $(CFLAGS) -c $^
 
 boot : boot.o
-	$(LD) $(LDFLAGS) -Ttext 0x00 boot.o -o boot
+	$(LD) $(LDFLAGS) -Ttext 0x00 $^ -o boot
 
-kernel : head.o main.o
-	$(LD) $(LDFLAGS) -Ttext 0x00 head.o main.o -o kernel
+kernel : head.o $(OBJECTS)
+	$(LD) $(LDFLAGS) -Ttext 0x00 $^ -o kernel
 
 .PHONY:
 depend:
@@ -29,7 +29,7 @@ depend:
 
 .PHONY:
 clean:
-	rm -f boot.img kernel.img boot kernel $(OBJECTS)
+	rm -f kernel.img kernel boot.img  boot boot.o $(OBJECTS)
 # DO NOT DELETE
 
-main.o: defs.h asm.h
+hard_disk.o: asm.h defs.h
