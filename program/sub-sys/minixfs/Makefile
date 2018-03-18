@@ -1,9 +1,9 @@
 CC = gcc
 LD = ld
-CFLAGS = -nostdinc -m32 -Wall -g -O2
+CFLAGS = -nostdinc -fno-builtin -m32 -Wall -g -O2
 LDFLAGS = -m elf_i386
-SRCS = hard_disk.c main.c
-OBJECTS = head.o main.o hard_disk.o
+SRCS = *.c
+OBJECTS = head.o main.o hard_disk.o partion.o
 
 hd.img : boot kernel
 	objcopy -j .text -O binary boot boot.img
@@ -34,3 +34,4 @@ clean:
 
 hard_disk.o: asm.h defs.h
 main.o: defs.h hard_disk.h
+partion.o: partion.h defs.h

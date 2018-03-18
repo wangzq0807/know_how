@@ -36,7 +36,15 @@ static inline void insw(uint32_t cnt, uint16_t port, uint32_t buffer) {
 }
 
 static inline void pause() {
-    asm volatile ("pause");
+    __asm__ volatile ("pause");
+}
+
+static inline void memcpy(void *dest, void *src, uint32_t size) {
+    __asm__ volatile (
+        "cld \n"
+        "rep movsb \n"
+        : : "S"(src), "D"(dest), "c"(size)
+    );
 }
 
 #endif // __IO_H__
