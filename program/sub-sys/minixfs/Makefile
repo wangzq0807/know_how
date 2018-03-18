@@ -1,6 +1,6 @@
 CC = gcc
 LD = ld
-CFLAGS = -m32 -Wall -g -O2
+CFLAGS = -nostdinc -m32 -Wall -g -O2
 LDFLAGS = -m elf_i386
 SRCS = hard_disk.c main.c
 OBJECTS = head.o main.o hard_disk.o
@@ -9,7 +9,7 @@ hd.img : boot kernel
 	objcopy -j .text -O binary boot boot.img
 	objcopy -j .text -O binary kernel kernel.img
 	dd if=boot.img of=hd.img bs=432 count=1 conv=notrunc
-	dd if=kernel.img of=hd.img bs=512 count=16 seek=1 conv=notrunc
+	dd if=kernel.img of=hd.img bs=512 count=60 seek=1 conv=notrunc
 
 %.o : %.S
 	$(CC) $(CFLAGS) -c $^
@@ -29,7 +29,8 @@ depend:
 
 .PHONY:
 clean:
-	rm -f kernel.img kernel boot.img  boot boot.o $(OBJECTS)
+	rm -f kernel.img kernel boot.img boot boot.o $(OBJECTS) *.gch
 # DO NOT DELETE
 
 hard_disk.o: asm.h defs.h
+main.o: defs.h hard_disk.h

@@ -1,3 +1,5 @@
+#include "defs.h"
+#include "hard_disk.h"
 
 void start_main()
 {
