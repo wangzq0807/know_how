@@ -29,8 +29,8 @@ void start_main()
     partion_load();
 
     char sz[] = "asdfasdfafgds\ngdsgsdfgdsfgsdfdsgsdf\n123445756765456768768578567";
-    for (int i = 0; i < 20; ++i )
-        print(sz, sizeof(sz));
+    //for (int i = 0; i < 20; ++i )
+    //    print(sz, sizeof(sz));
     // ata_read(0, 1, (void *)0x2000);
     // ata_write((void*)0x7c00, 1, 1);
 }

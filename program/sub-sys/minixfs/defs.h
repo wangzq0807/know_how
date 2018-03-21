@@ -8,6 +8,9 @@ typedef short           int16_t;
 typedef unsigned long   uint32_t;
 typedef long            int32_t;
 
+typedef long            time_t;
+typedef int             error_t;
+
 #define BYTE1(val) ((val) & 0xFF)
 #define BYTE2(val) ((val) >> 8 & 0xFF)
 #define BYTE3(val) ((val) >> 16 & 0xFF)
