@@ -9,5 +9,5 @@ struct IndexNode {
     time_t      atime;          // access time
     time_t      mtime;          // modify time
     time_t      ctime;          // create time
-    uint32_t    zones[10]       // zone
+    uint32_t    zones[10];      // zone
 };
