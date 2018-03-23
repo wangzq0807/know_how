@@ -3,6 +3,7 @@
 #include "partion.h"
 #include "superblk.h"
 #include "bitmap.h"
+#include "inode.h"
 
 #define SCREEN_ADR  0xB8000    /* 显存地址 */
 #define ONE_LINE    160        /* 一行的空间大小 */
@@ -26,18 +27,21 @@ void print(const char *buffer, uint32_t cnt)
     }
 }
 
-#define SUPER_ADDR 8+2
-
 void start_main()
 {
     partion_load();
     uint32_t nstart = partion_get_start(0);
-    nstart += 2;
+    nstart = nstart / 2 + 1;
     superblk_load(nstart);
+    nstart += 1;
     uint32_t icnt = superblk_get_imap_blocks(1);
-    uint32_t zcnt = superblk_get_imap_blocks(1);
-    bitmap_inode_load(nstart+2, icnt);
-    bitmap_znode_load(nstart+2+(icnt<<1), zcnt);
+    uint32_t zcnt = superblk_get_zmap_blocks(1);
+    bitmap_inode_load(nstart, icnt);
+    nstart += icnt;
+    bitmap_znode_load(nstart, zcnt);
+    nstart += zcnt;
+    inode_load(nstart, 1);
+    inode_root_ls( partion_get_start(0) / 2 );
 
     char sz[] = "asdfasdfafgds\ngdsgsdfgdsfgsdfdsgsdf\n123445756765456768768578567";
     //for (int i = 0; i < 20; ++i )

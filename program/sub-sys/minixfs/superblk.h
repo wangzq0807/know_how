@@ -8,4 +8,6 @@ uint32_t superblk_get_imap_blocks();
 
 uint32_t superblk_get_zmap_blocks();
 
+uint32_t superblk_get_first_datablk();
+
 #endif // __SUPERBLK__

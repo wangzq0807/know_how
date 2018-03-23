@@ -2,7 +2,7 @@
 #include "hard_disk.h"
 #include "asm.h"
 
-uint8_t buffer[512] = {0};
+static uint8_t buffer[512] = {0};
 
 struct SuperBlock {
     uint16_t    inodes;                 // inode number
@@ -19,9 +19,9 @@ struct SuperBlock {
 
 static struct SuperBlock super_blk;
 
-error_t superblk_load(uint32_t lba_addr)
+error_t superblk_load(uint32_t blk)
 {
-    ata_read(lba_addr, 1, &buffer);
+    ata_read(blk << 1, 1, &buffer);
     memcpy(&super_blk, buffer, sizeof(super_blk));
     return 0;
 }
@@ -34,4 +34,9 @@ uint32_t superblk_get_imap_blocks()
 uint32_t superblk_get_zmap_blocks()
 {
     return super_blk.zmap_blocks;
+}
+
+uint32_t superblk_get_first_datablk()
+{
+    return super_blk.first_datazone;
 }

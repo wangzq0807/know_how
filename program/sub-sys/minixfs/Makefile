@@ -1,6 +1,6 @@
 CC = gcc
 LD = ld
-CFLAGS = -nostdinc -fno-builtin -m32 -Wall -g -O2
+CFLAGS = -nostdinc -fno-builtin -m32 -Wall -g -O0
 LDFLAGS = -m elf_i386
 SRCS = *.c
 OBJECTS = head.o main.o hard_disk.o partion.o superblk.o inode.o bitmap.o
