@@ -34,8 +34,6 @@
 #define S_ISLNK(m)      (((m) & S_IFMT) == S_IFLNK)
 #define S_ISSOCK(m)     (((m) & S_IFMT) == S_IFSOCK)
 
-error_t inode_load(uint32_t node_blk, uint32_t i);
-
-error_t inode_root_ls(uint32_t first);
+error_t inode_ls(uint32_t inode);
 
 #endif // __INODE__

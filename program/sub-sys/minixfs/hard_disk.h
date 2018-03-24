@@ -24,6 +24,9 @@
 #define ATA_STATUS_READY    0x40
 #define ATA_STATUS_BUSY     0x80
 
+#define IDE0_MAJOR          3
+#define HD_MAJOR            IDE0_MAJOR
+
 int ata_cmd(uint32_t lba_addr, uint16_t cnt, uint32_t cmd);
 
 int ata_read(uint32_t lba_addr, uint16_t cnt, void *buffer);
