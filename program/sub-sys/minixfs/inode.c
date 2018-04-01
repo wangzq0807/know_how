@@ -3,6 +3,7 @@
 #include "asm.h"
 #include "partion.h"
 #include "superblk.h"
+#include "log.h"
 
 #define DIRECT_ZONE 7
 #define NUMBER_ZONE 10

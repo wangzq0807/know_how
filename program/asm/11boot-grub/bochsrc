@@ -1,4 +1,4 @@
-gdbstub: enabled=1, port=1234, text_base=0, data_base=0, bss_base=0
+# gdbstub: enabled=1, port=1234, text_base=0, data_base=0, bss_base=0
 com1: enabled=1, mode=file, dev=serial.txt
 #=======================================================================
 # MEGS
@@ -9,7 +9,7 @@ megs: 64
 # ROMIMAGE:
 # The ROM BIOS controls what the PC does when it first powers on.
 #=======================================================================
-romimage: file=$BXSHARE/BIOS-bochs-latest 
+romimage: file=$BXSHARE/BIOS-bochs-latest
 
 #=======================================================================
 # VGAROMIMAGE

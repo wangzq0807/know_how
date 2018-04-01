@@ -1,9 +1,9 @@
 CC = gcc
 LD = ld
-CFLAGS = -nostdinc -fno-builtin -m32 -Wall -g -O0
+CFLAGS = -g -O0  -m32 -Wall -Werror -ffreestanding -nostdinc
 LDFLAGS = -m elf_i386
 SRCS = *.c
-OBJECTS = head.o main.o hard_disk.o partion.o superblk.o inode.o bitmap.o
+OBJECTS = head.o main.o hard_disk.o partion.o superblk.o inode.o bitmap.o arch.o log.o
 
 hd.img : boot kernel
 	objcopy -j .text -O binary boot boot.img
@@ -32,9 +32,12 @@ clean:
 	rm -f kernel.img kernel boot.img boot boot.o $(OBJECTS) *.gch
 # DO NOT DELETE
 
+arch.o: arch.h defs.h asm.h
 bitmap.o: bitmap.h defs.h hard_disk.h
+buffer.o: buffer.h defs.h hard_disk.h
 hard_disk.o: asm.h defs.h
-inode.o: inode.h defs.h
-main.o: defs.h hard_disk.h partion.h superblk.h bitmap.h
-partion.o: asm.h defs.h partion.h
+inode.o: inode.h defs.h hard_disk.h asm.h partion.h superblk.h log.h
+log.o: log.h defs.h
+main.o: defs.h hard_disk.h partion.h superblk.h bitmap.h inode.h arch.h log.h
+partion.o: asm.h defs.h partion.h hard_disk.h
 superblk.o: superblk.h defs.h hard_disk.h asm.h

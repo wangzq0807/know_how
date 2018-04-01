@@ -49,7 +49,7 @@ idt_tab: .fill 256, 8, 0    /* 中断描述符表 */
 setup_idt:
     movl $0x00008e00, %eax
     movl $0x00080000, %ebx
-    lea ignore_interactor, %bx
+    lea ignore_inter, %bx
     movl $256, %ecx
     lea  idt_tab, %edx
 _rep_set:
@@ -60,7 +60,7 @@ _rep_set:
     jne _rep_set            /* ZF标志为0则跳转 */
     lidt idt_ptr
     ret
-ignore_interactor:
+ignore_inter:
     pushl %eax
     popl %eax
     iret

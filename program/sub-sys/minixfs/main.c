@@ -4,34 +4,12 @@
 #include "superblk.h"
 #include "bitmap.h"
 #include "inode.h"
-
-#define SCREEN_ADR  0xB8000    /* 显存地址 */
-#define ONE_LINE    160        /* 一行的空间大小 */
-#define ONE_PAGE    0x1000     /* 一页的空间大小 */
-#define CHAR_PROP   0x0F       /* 字符属性(白色) */
-uint32_t cursor_pos = 0;
-void print(const char *buffer)
-{
-    for (uint32_t i = 0; i < 0xffff; ++i) {
-        char* next_addr = (char*)(SCREEN_ADR + (cursor_pos << 1));
-        if (buffer[i] == '\n') {
-            cursor_pos = (cursor_pos + 80) / 80 * 80;
-        }
-        else if (buffer[i] == '\0') {
-            return ;
-        }
-        else {
-            *next_addr = buffer[i];
-            *(next_addr+1) = CHAR_PROP;
-            ++cursor_pos;
-        }
-        if (cursor_pos >= 2000)
-            cursor_pos = 0;
-    }
-}
+#include "arch.h"
+#include "log.h"
 
 void start_main()
 {
+    init_regs();
     partion_load();
     uint32_t nstart = partion_get_start(0);
     nstart = nstart / 2 + 1;
