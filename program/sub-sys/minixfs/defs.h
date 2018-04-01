@@ -16,4 +16,6 @@ typedef int             error_t;
 #define BYTE3(val) ((val) >> 16 & 0xFF)
 #define BYTE4(val) ((val) >> 24 & 0xFF)
 
+#define NULL    0
+
 #endif // __DEFS_H__

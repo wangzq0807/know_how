@@ -65,7 +65,7 @@ error_t inode_ls(uint32_t inode)
     struct Direction dir;
     inode_data_load(inode, buffer);
 
-    char rt[] = "    ";
+    char rt[] = "  ";
     memcpy(&dir, buffer, sizeof(struct Direction));
     print(dir.name); print(rt);
     memcpy(&dir, buffer + 32, sizeof(struct Direction));

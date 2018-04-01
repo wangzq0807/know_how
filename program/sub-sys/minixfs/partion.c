@@ -1,8 +1,9 @@
 #include "asm.h"
 #include "partion.h"
-#define PARTION_ADDR  (0x7c00+446)
+#include "hard_disk.h"
+#define PARTION_POS (446)
 #define BOOT_FLAG (0xaa55)
-#define BOOT_FLAG_ADDR (0x7c00+510)
+#define BOOT_FLAG_POS (510)
 
 struct PartEntry {
     uint8_t indicator;
@@ -17,17 +18,19 @@ struct PartEntry {
     uint32_t total_sector;
 };
 
+uint8_t buffer[512] = { 0 };
 struct PartEntry partion_table[4];
 
 error_t partion_load()
 {
-    uint16_t bootable = *((uint16_t*)BOOT_FLAG_ADDR);
+    ata_read(0, 1, buffer);
+    uint16_t bootable = *(uint16_t*)(buffer + BOOT_FLAG_POS);
     if (bootable != BOOT_FLAG)  return -1;
 
-    memcpy(&partion_table[0],(void*)PARTION_ADDR, sizeof(struct PartEntry));
-    memcpy(&partion_table[1],(void*)PARTION_ADDR, sizeof(struct PartEntry));
-    memcpy(&partion_table[2],(void*)PARTION_ADDR, sizeof(struct PartEntry));
-    memcpy(&partion_table[3],(void*)PARTION_ADDR, sizeof(struct PartEntry));
+    memcpy(&partion_table[0], buffer + PARTION_POS, sizeof(struct PartEntry));
+    memcpy(&partion_table[1], buffer + PARTION_POS, sizeof(struct PartEntry));
+    memcpy(&partion_table[2], buffer + PARTION_POS, sizeof(struct PartEntry));
+    memcpy(&partion_table[3], buffer + PARTION_POS, sizeof(struct PartEntry));
     return 0;
 }
 

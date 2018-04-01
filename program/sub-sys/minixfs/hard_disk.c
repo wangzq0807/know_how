@@ -60,7 +60,7 @@ int ata_read(uint32_t lba_addr, uint16_t cnt, void *buffer)
     if (err != 0)   return err;
     // TODO: wait drive ready
     ata_wait_ready();
-    insw(256, ATA_REG_DATA, (uint32_t)buffer);
+    insw(256*cnt, ATA_REG_DATA, (uint32_t)buffer);
 
     return 0;
 }
@@ -73,7 +73,7 @@ int ata_write(const void *buffer, uint32_t lba_addr, uint16_t cnt)
     // TODO: wait drive ready
     ata_wait_ready();
     // begin write
-    outsw((uint32_t)buffer, 256, ATA_REG_DATA);
+    outsw((uint32_t)buffer, 256*cnt, ATA_REG_DATA);
 
     return 0;
 }
