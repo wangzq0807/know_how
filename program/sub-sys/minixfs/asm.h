@@ -39,6 +39,14 @@ static inline void pause() {
     __asm__ volatile ("pause");
 }
 
+static inline void cli() {
+    __asm__ volatile ("cli");
+}
+
+static inline void sti() {
+    __asm__ volatile ("sti");
+}
+
 static inline void memcpy(void *dest, void *src, uint32_t size) {
     __asm__ volatile (
         "cld \n"

@@ -65,9 +65,9 @@ ignore_inter:
     popl %eax
     iret
 
-/* 2KB 堆栈 */
+/* 4KB 堆栈 */
 .align  4
-    .fill 512, 4, 0
+    .fill 1024, 4, 0
 init_stack:
     .long init_stack
     .word DATA_SEG
