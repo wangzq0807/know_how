@@ -5,9 +5,11 @@ LDFLAGS = -m elf_i386
 SRCS = *.c
 OBJECTS = head.o main.o hard_disk.o partion.o superblk.o inode.o bitmap.o arch.o log.o
 
+# boot只需要代码区
+# kernel除了代码区以外还需要数据区和bss区等
 hd.img : boot kernel
 	objcopy -j .text -O binary boot boot.img
-	objcopy -j .text -O binary kernel kernel.img
+	objcopy -O binary kernel kernel.img
 	dd if=boot.img of=hd.img bs=432 count=1 conv=notrunc
 	dd if=kernel.img of=hd.img bs=512 count=60 seek=1 conv=notrunc
 
