@@ -2,6 +2,20 @@
 #include "asm.h"
 #include "log.h"
 
+struct X86Desc idt_table[256] = { 0 };
+struct X86IDTR idt_ptr = { 0 };
+extern void on_timer_intr();
+extern void on_ignore_intr();
+
+void
+set_intr_gate(int32_t num, void *func_addr)
+{
+    const uint32_t selector = TSK_CS;
+    const uint32_t offset = (uint32_t)func_addr;
+    idt_table[num].d_low = (selector << 16) | (offset & 0xFFFF);
+    idt_table[num].d_high = (offset & 0xFFFF0000) | INTR_GATE_FLAG;
+}
+
 static void
 _init_8259A()
 {
@@ -31,30 +45,22 @@ _init_timer()
     outb(high, 0x40);   /* 后写高字节 */
 }
 
-static void 
-_on_timer()
+void
+on_timer_handler()
 {
     /* 设置8259A的OCW2,发送结束中断命令 */
     outb(0x20, 0x20);
+    outb(0x20, 0xA0);
     const char msg[] = "T";
     print(msg);
 }
 
-static void
-_on_ignore()
+void
+on_ignore_handler()
 {
     /* 设置8259A的OCW2,发送结束中断命令 */
     outb(0x20, 0x20);
-}
-
-uint64_t idt_table[512] = { 0 };
-
-static inline void 
-reg_intr_gate(uint64_t *idt, int32_t num, void *func_addr) {
-    const uint32_t selector = TSK_CS;
-    const uint32_t offset = (uint32_t)func_addr;
-    idt_table[(num << 1)] = (selector << 16) | (offset & 0xFFFF);
-    idt_table[(num << 1) + 1] = (offset & 0xFFFF0000) | INTR_GATE_FLAG;
+    outb(0x20, 0xA0);
 }
 
 static void
@@ -62,10 +68,15 @@ setup_idt()
 {
     /* 设置默认中断 */
     for (int32_t i = 0; i < 256; ++i) {
-        reg_intr_gate(idt_table, i, &_on_ignore);
+        set_intr_gate(i, &on_ignore_intr);
     }
     /* 设置时钟中断 */
-    reg_intr_gate(idt_table, 0, &_on_timer);
+    set_intr_gate(INTR_TIMER, &on_timer_intr);
+
+    const uint32_t base_addr = (uint32_t)(&idt_table);
+    idt_ptr.i_limit = 256*8 -1;
+    idt_ptr.i_addr = base_addr;
+    lidt(&idt_ptr);
 }
 
 static void
@@ -84,6 +95,6 @@ init_regs()
     _init_8259A();
     _init_timer();
 
-    // sti();
+    sti();
 }
 

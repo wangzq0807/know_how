@@ -47,6 +47,13 @@ static inline void sti() {
     __asm__ volatile ("sti");
 }
 
+static inline void lidt(void* idtr) {
+    __asm__ volatile (
+        "lidt (%%eax) \n"
+        : :"a"(idtr)
+    );
+}
+
 static inline void memcpy(void *dest, void *src, uint32_t size) {
     __asm__ volatile (
         "cld \n"

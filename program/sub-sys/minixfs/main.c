@@ -7,25 +7,9 @@
 #include "arch.h"
 #include "log.h"
 
-// void sizecheck()
-// {
-//     // uint32_t siz = sizeof(uint8_t);
-//     char sz[] = "abc";
-//     print(sz);
-//     // siz = sizeof(uint16_t);
-//     // printx(siz);
-//     // siz = sizeof(uint32_t);
-//     // printx(siz);
-//     // siz = sizeof(uint64_t);
-//     // printx(siz);
-// }
-
 void start_main()
 {
-    char sz[] = "abc";
-    print(sz);
-    // sizecheck();
-    // init_regs();
+    init_regs();
     // partion_load();
     // uint32_t nstart = partion_get_start(0);
     // nstart = nstart / 2 + 1;

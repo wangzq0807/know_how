@@ -21,6 +21,18 @@
 #define INTR_SERIAL1    4 + 32
 #define INTR_DISK       14 + 32
 
+struct X86Desc {
+    uint32_t d_low;
+    uint32_t d_high;
+};
+
+struct X86IDTR {
+    uint16_t i_limit;
+    uint32_t i_addr;
+} __attribute__((packed));  // 取消对齐优化
+
+void set_intr_gate(int32_t num, void *func_addr);
+
 void init_regs();
 
 #endif // __ARCH_H__

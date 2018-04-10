@@ -3,7 +3,7 @@ LD = ld
 CFLAGS = -g -O0  -m32 -Wall -Werror -ffreestanding -nostdinc
 LDFLAGS = -m elf_i386
 SRCS = *.c
-OBJECTS = head.o main.o hard_disk.o partion.o superblk.o inode.o bitmap.o arch.o log.o
+OBJECTS = head.o main.o hard_disk.o partion.o superblk.o inode.o bitmap.o arch.o log.o intr.o
 
 # boot只需要代码区
 # kernel除了代码区以外还需要数据区和bss区等
