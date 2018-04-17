@@ -2,44 +2,47 @@ CC = gcc
 LD = ld
 CFLAGS = -g -O0  -m32 -Wall -Werror -ffreestanding -nostdinc
 LDFLAGS = -m elf_i386
-SRCS = *.c
-OBJECTS = head.o main.o hard_disk.o partion.o superblk.o inode.o bitmap.o arch.o log.o intr.o
+BUILD_PATH = _build
+# 查找所有的.c文件
+SOURCES = $(shell find ./ -name '*.c' -printf '%T@\t%p\n' \
+			| sort -k 1nr | cut -f2-)
+# 查找所有的.S文件(排除boot.S)
+ASMSRCS = $(shell find ./ -path ./boot.S -prune -o -name "*.S" -printf '%T@\t%p\n' \
+			| sort -k 1nr | cut -f2-)
+# 自动生成obj文件名
+OBJECTS = $(SOURCES:./%.c=$(BUILD_PATH)/%.o)
+OBJECTS += $(ASMSRCS:./%.S=$(BUILD_PATH)/%.o)
+# 自动生成depends文件名
+DEPS = $(OBJECTS:.o=.d)
 
 # boot只需要代码区
 # kernel除了代码区以外还需要数据区和bss区等
 hd.img : boot kernel
-	objcopy -j .text -O binary boot boot.img
-	objcopy -O binary kernel kernel.img
-	dd if=boot.img of=hd.img bs=432 count=1 conv=notrunc
-	dd if=kernel.img of=hd.img bs=512 count=60 seek=1 conv=notrunc
+	@objcopy -j .text -O binary boot boot.img
+	@objcopy -O binary kernel kernel.img
+	@echo "将内核写入虚拟磁盘hd.img..."
+	@dd if=boot.img of=hd.img bs=432 count=1 conv=notrunc
+	@dd if=kernel.img of=hd.img bs=512 count=60 seek=1 conv=notrunc
+	@$(RM) boot.img kernel.img
 
-%.o : %.S
-	$(CC) $(CFLAGS) -c $^
+# 编译规则
+$(BUILD_PATH)/%.o : %.c
+	$(CC) $(CFLAGS) -MP -MMD -c $< -o $@
 
-%.o : %.c
-	$(CC) $(CFLAGS) -c $^
+$(BUILD_PATH)/%.o : %.S
+	$(CC) $(CFLAGS) -c $^ -o $@
 
-boot : boot.o
+# 引导程序链接规则
+boot : $(BUILD_PATH)/boot.o
 	$(LD) $(LDFLAGS) -Ttext 0x00 $^ -o boot
 
-kernel : head.o $(OBJECTS)
+# 内核的链接规则
+kernel : $(OBJECTS)
 	$(LD) $(LDFLAGS) -Ttext 0x00 $^ -o kernel
 
-.PHONY:
-depend:
-	makedepend $(SRCS) -I ./ -Y
+# 包含所有依赖
+-include $(DEPS)
 
 .PHONY:
 clean:
-	rm -f kernel.img kernel boot.img boot boot.o $(OBJECTS) *.gch
-# DO NOT DELETE
-
-arch.o: arch.h defs.h asm.h
-bitmap.o: bitmap.h defs.h hard_disk.h
-buffer.o: buffer.h defs.h hard_disk.h
-hard_disk.o: asm.h defs.h
-inode.o: inode.h defs.h hard_disk.h asm.h partion.h superblk.h log.h
-log.o: log.h defs.h
-main.o: defs.h hard_disk.h partion.h superblk.h bitmap.h inode.h arch.h log.h
-partion.o: asm.h defs.h partion.h hard_disk.h
-superblk.o: superblk.h defs.h hard_disk.h asm.h
+	@$(RM) kernel boot $(BUILD_PATH)/*

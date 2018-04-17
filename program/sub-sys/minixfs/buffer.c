@@ -95,7 +95,7 @@ get_block(uint16_t dev, uint32_t blk)
     struct Buffer *buf = get_hash_entity(dev, blk);
     if (buf != NULL)
         return buf;
-    
+    return NULL;
 }
 
 // error_t put_block(const struct Buffer *buf)
