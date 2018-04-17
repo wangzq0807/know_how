@@ -7,13 +7,24 @@ struct X86IDTR idt_ptr = { 0 };
 extern void on_timer_intr();
 extern void on_ignore_intr();
 
+/* 中断门: 中断正在处理时,IF清0,从而屏蔽其他中断 */
 void
 set_intr_gate(int32_t num, void *func_addr)
 {
-    const uint32_t selector = TSK_CS;
+    const uint32_t selector = KNL_CS;
     const uint32_t offset = (uint32_t)func_addr;
     idt_table[num].d_low = (selector << 16) | (offset & 0xFFFF);
-    idt_table[num].d_high = (offset & 0xFFFF0000) | INTR_GATE_FLAG;
+    idt_table[num].d_high = (offset & 0xFFFF0000) | GATE_INTR_FLAG;
+}
+
+/* 中断门: 中断正在处理时,IF不清零,可响应更高优先级的中断 */
+void
+set_trap_gate(int32_t num, void *func_addr)
+{
+    const uint32_t selector = KNL_CS;
+    const uint32_t offset = (uint32_t)func_addr;
+    idt_table[num].d_low = (selector << 16) | (offset & 0xFFFF);
+    idt_table[num].d_high = (offset & 0xFFFF0000) | GATE_TRAP_FLAG;
 }
 
 static void
@@ -51,8 +62,13 @@ on_timer_handler()
     /* 设置8259A的OCW2,发送结束中断命令 */
     outb(0x20, 0x20);
     outb(0x20, 0xA0);
-    const char msg[] = "T";
-    print(msg);
+    print("A");
+    print("B");
+    print("C");
+    print("D");
+    while(1) {
+        pause();
+    }
 }
 
 void

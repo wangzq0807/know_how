@@ -11,15 +11,20 @@
 #define TSK_LDT(n)  (TSK_TSS(n) + 8)
 #define TSK_MAX     128
 /* 门描述符标志 */
-#define INTR_GATE_FLAG  0x8E00
-#define TRAP_GATE_FLAG  0x8F00
+#define GATE_INTR_FLAG  0x8E00
+#define GATE_TRAP_FLAG  0x8F00
 /* 中断向量号 */
-#define INTR_TIMER      0 + 32
-#define INTR_KEYBOARD   1 + 32
-#define INTR_SLAVE      2 + 32
-#define INTR_SERIAL2    3 + 32
-#define INTR_SERIAL1    4 + 32
-#define INTR_DISK       14 + 32
+#define INTR_HW_BEG     0x20            // 硬件中断号开始
+#define INTR_TIMER      INTR_HW_BEG
+#define INTR_KEYBOARD   INTR_HW_BEG + 1
+#define INTR_SLAVE      INTR_HW_BEG + 2
+#define INTR_SERIAL2    INTR_HW_BEG + 3
+#define INTR_SERIAL1    INTR_HW_BEG + 4
+#define INTR_LPT        INTR_HW_BEG + 5
+#define INTR_FLOPPY     INTR_HW_BEG + 6
+#define INTR_RELTIME    INTR_HW_BEG + 7
+#define INTR_PS2        INTR_HW_BEG + 12
+#define INTR_DISK       INTR_HW_BEG + 14
 
 struct X86Desc {
     uint32_t d_low;
@@ -32,6 +37,7 @@ struct X86IDTR {
 } __attribute__((packed));  // 取消对齐优化
 
 void set_intr_gate(int32_t num, void *func_addr);
+void set_trap_gate(int32_t num, void *func_addr);
 
 void init_regs();
 
