@@ -6,12 +6,10 @@ BUILD_PATH = _build
 # 查找所有的.c文件
 SOURCES = $(shell find ./ -name '*.c' -printf '%T@\t%p\n' \
 			| sort -k 1nr | cut -f2-)
-# 查找所有的.S文件(排除boot.S)
-ASMSRCS = $(shell find ./ -path ./boot.S -prune -o -name "*.S" -printf '%T@\t%p\n' \
-			| sort -k 1nr | cut -f2-)
-# 自动生成obj文件名
-OBJECTS = $(SOURCES:./%.c=$(BUILD_PATH)/%.o)
-OBJECTS += $(ASMSRCS:./%.S=$(BUILD_PATH)/%.o)
+# 自动生成obj文件名(head.o需放在第一位)
+OBJECTS = $(BUILD_PATH)/head.o \
+		  $(BUILD_PATH)/intr.o
+OBJECTS += $(SOURCES:./%.c=$(BUILD_PATH)/%.o)
 # 自动生成depends文件名
 DEPS = $(OBJECTS:.o=.d)
 

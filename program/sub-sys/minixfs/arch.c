@@ -66,9 +66,6 @@ on_timer_handler()
     print("B");
     print("C");
     print("D");
-    while(1) {
-        pause();
-    }
 }
 
 void
