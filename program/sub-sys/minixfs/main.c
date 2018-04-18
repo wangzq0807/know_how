@@ -4,7 +4,7 @@
 #include "superblk.h"
 #include "bitmap.h"
 #include "inode.h"
-#include "arch.h"
+#include "arch/arch.h"
 #include "log.h"
 
 void start_main()
