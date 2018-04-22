@@ -36,6 +36,38 @@ struct X86DTR {
     uint32_t r_addr;
 } __attribute__((packed));  // 取消对齐优化
 
+struct X86TSS {
+    uint16_t    t_pre_TSS;
+
+    uint32_t    t_ESP_0;
+    uint16_t    t_SS_0;
+    uint32_t    t_ESP_1;
+    uint16_t    t_SS_1;
+    uint32_t    t_ESP_2;
+    uint16_t    t_SS_2;
+
+    uint32_t    t_CR3;
+    uint32_t    t_EIP;
+    uint32_t    t_EFLAGS;
+    uint32_t    t_EAX;
+    uint32_t    t_ECX;
+    uint32_t    t_EDX;
+    uint32_t    t_EBX;
+    uint32_t    t_ESP;
+    uint32_t    t_EBP;
+    uint32_t    t_ESI;
+    uint32_t    t_EDI;
+
+    uint32_t    t_ES;
+    uint32_t    t_CS;
+    uint32_t    t_SS;
+    uint32_t    t_DS;
+    uint32_t    t_FS;
+    uint32_t    t_GS;
+    uint32_t    t_LDT;
+    uint16_t    t_Trap;
+    uint16_t    t_IO_map;
+};
 
 void set_intr_gate(int32_t num, void *func_addr);
 void set_trap_gate(int32_t num, void *func_addr);

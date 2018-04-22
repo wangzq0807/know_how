@@ -61,11 +61,47 @@ static inline void lgdt(void* gdtr) {
     );
 }
 
+static inline void ltr(uint32_t ltr) {
+    __asm__ volatile (
+        "ltr %%ax \n"
+        : :"a"(ltr)
+    );
+}
+
+static inline void lldt(uint32_t ldt) {
+    __asm__ volatile (
+        "lldt %%ax \n"
+        : :"a"(ldt)
+    );
+}
+
+static inline void flush_sregs(uint16_t cs, uint16_t ds) {
+    __asm__ volatile (
+        "pushl %%eax \n"
+        "pushl $1f \n"
+        "retf \n"
+        "1: movw %%bx, %%ds \n"
+        "movw %%bx, %%es \n"
+        "movw %%bx, %%fs \n"
+        "movw %%bx, %%gs \n"
+        "movw %%bx, %%ss \n"
+        : :"a"(cs), "b"(ds)
+    );
+}
+
 static inline void memcpy(void *dest, void *src, uint32_t size) {
     __asm__ volatile (
         "cld \n"
         "rep movsb \n"
         : : "S"(src), "D"(dest), "c"(size)
+    );
+}
+
+static inline void move_to_user(void* user_stack) {
+    __asm__ volatile (
+        "pushl 0x18 \n"
+        "pushl (%%eax) \n"
+        : :"a"(user_stack)
     );
 }
 

@@ -14,8 +14,6 @@ _start:
     lss init_stack, %esp
 
     call start_main
-    /* call start_main */
-    jmp loop1
 
 loop1:
     jmp loop1
