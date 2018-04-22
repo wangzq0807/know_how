@@ -13,7 +13,7 @@ SOURCES = $(shell find ./ -name '*.c' -printf '%T@\t%p\n' \
 			| sort -k 1nr | cut -f2-)
 # 自动生成的obj文件名, head.o需放在$(OBJECTS)第一位
 OBJECTS = $(patsubst %.S, $(BUILD_PATH)/%.o, $(ASMSRCS))
-OBJECTS += $(SOURCES:./%.c=$(BUILD_PATH)/%.o)
+OBJECTS += $(patsubst %.c, $(BUILD_PATH)/%.o, $(SOURCES))
 # 自动生成depends文件名
 DEPS = $(OBJECTS:.o=.d)
 

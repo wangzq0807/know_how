@@ -31,10 +31,11 @@ struct X86Desc {
     uint32_t d_high;
 };
 
-struct X86IDTR {
-    uint16_t i_limit;
-    uint32_t i_addr;
+struct X86DTR {
+    uint16_t r_limit;
+    uint32_t r_addr;
 } __attribute__((packed));  // 取消对齐优化
+
 
 void set_intr_gate(int32_t num, void *func_addr);
 void set_trap_gate(int32_t num, void *func_addr);

@@ -54,6 +54,13 @@ static inline void lidt(void* idtr) {
     );
 }
 
+static inline void lgdt(void* gdtr) {
+    __asm__ volatile (
+        "lgdt (%%eax) \n"
+        : :"a"(gdtr)
+    );
+}
+
 static inline void memcpy(void *dest, void *src, uint32_t size) {
     __asm__ volatile (
         "cld \n"
