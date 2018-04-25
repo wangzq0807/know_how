@@ -6,9 +6,10 @@
 struct X86Desc idt_table[256] = { 0 };
 struct X86DTR idt_ptr = { 0 };
 /* 全局描述符 */
-struct X86Desc gdt_table[5] = { 0 };
+struct X86Desc gdt_table[7] = { 0 };
 struct X86DTR gdt_ptr = { 0 };
 /* 任务描述符 */
+uint32_t current = 1;
 /* 任务一 */
 struct X86TSS tss1 = { 0 };
 uint8_t tss1_kernal_stack[4096] = { 0 };
@@ -16,6 +17,7 @@ uint8_t tss1_user_stack[4096] = { 0 };
 struct X86Desc tss1_ldt[3] = { 0 };
 /* 任务二 */
 struct X86TSS tss2 = { 0 };
+uint8_t tss2_kernal_stack[4096] = { 0 };
 uint8_t tss2_user_stack[4096] = { 0 };
 struct X86Desc tss2_ldt[3] = { 0 };
 
@@ -83,7 +85,20 @@ on_timer_handler()
     /* 设置8259A的OCW2,发送结束中断命令 */
     outb(0x20, 0x20);
     outb(0x20, 0xA0);
-    print("CCC");
+
+    print("timer");
+    if (current == 1) {
+        current = 2;
+        __asm__ volatile (
+            "ljmp $0x28, $0 \n"
+        );
+    }
+    else {
+        current = 1;
+        __asm__ volatile (
+            "ljmp $0x18, $0 \n"
+        );
+    }
 }
 
 void
@@ -161,7 +176,7 @@ _setup_ldt_desc(struct X86Desc* desc, uint32_t base, uint32_t limit, uint8_t dpl
 }
 
 static void
-_task_1()
+task_1()
 {
     __asm__ volatile (
         "mov $0x17, %%ax \n"
@@ -170,6 +185,24 @@ _task_1()
     );
     while( 1 ) {
         print("ABC");
+        pause();
+        pause();
+        pause();
+    }
+}
+
+static void
+task_2()
+{
+    __asm__ volatile (
+        "mov $0x17, %%ax \n"
+        "mov %%ax, %%ds \n"
+        : : : "%eax"
+    );
+    while( 1 ) {
+        print("DEF");
+        pause();
+        pause();
         pause();
     }
 }
@@ -185,17 +218,46 @@ setup_gdt()
     _setup_tss_desc(&gdt_table[3], (uint32_t)&tss1, 103, TSS_DPL);
     const uint8_t LDT_DPL = 0x8;        // LDT段DPL : 存在，特权级0，系统段
     _setup_ldt_desc(&gdt_table[4], (uint32_t)&tss1_ldt, 24, LDT_DPL);
-    const uint8_t USR_DPL = 0xF;
-    _setup_code_desc(&tss1_ldt[1], 0, 0xFFFFF, USR_DPL);
-    _setup_data_desc(&tss1_ldt[2], 0, 0xFFFFF, USR_DPL);
+
+    _setup_tss_desc(&gdt_table[5], (uint32_t)&tss2, 103, TSS_DPL);
+    _setup_ldt_desc(&gdt_table[6], (uint32_t)&tss2_ldt, 24, LDT_DPL);
 
     /* 重新加载gdt */
     const uint32_t base_addr = (uint32_t)(&gdt_table);
-    gdt_ptr.r_limit = 5*8 -1;
+    gdt_ptr.r_limit = 7*8 -1;
     gdt_ptr.r_addr = base_addr;
     lgdt(&gdt_ptr);
-    flush_sregs(KNL_CS, KNL_DS);
-    // move_to_user(&tss1_user_stack, &);
+    reload_sregs(KNL_CS, KNL_DS);
+}
+
+static void
+setup_ldt()
+{
+    const uint8_t USR_DPL = 0xF;
+    _setup_code_desc(&tss1_ldt[1], 0, 0xFFFFF, USR_DPL);
+    _setup_data_desc(&tss1_ldt[2], 0, 0xFFFFF, USR_DPL);
+    _setup_code_desc(&tss2_ldt[1], 0, 0xFFFFF, USR_DPL);
+    _setup_data_desc(&tss2_ldt[2], 0, 0xFFFFF, USR_DPL);
+}
+
+static void
+setup_tss()
+{
+    tss1.t_SS_0 = KNL_DS;
+    tss1.t_ESP_0 = (uint32_t)&tss1_kernal_stack[4095];
+    tss1.t_EIP = (uint32_t)task_1;
+    tss1.t_LDT = (uint32_t)0x20;
+
+    tss2.t_SS_0 = KNL_DS;
+    tss2.t_ESP_0 = (uint32_t)&tss2_kernal_stack[4095];
+
+    tss2.t_EFLAGS = 0x200;  // NOTE: 允许中断
+    tss2.t_DS = 0x17;
+    tss2.t_SS = 0x17;
+    tss2.t_ESP = (uint32_t)&tss2_user_stack[4095];
+    tss2.t_CS = 0xF;
+    tss2.t_EIP = (uint32_t)task_2;
+    tss2.t_LDT = (uint32_t)0x30;
 }
 
 void
@@ -204,26 +266,18 @@ init_regs()
     cli();
     setup_idt();
     setup_gdt();
+    setup_ldt();
+    setup_tss();
 
     _init_8259A();
     _init_timer();
 
     /* 跳转到用户空间 */
-    tss1.t_SS_0 = KNL_DS;
-    tss1.t_ESP_0 = (uint32_t)&tss1_kernal_stack;
     ltr(0x18);
     lldt(0x20);
 
     sti();
 
-    __asm__ volatile (
-        "pushl $0x17 \n"
-        "pushl $tss1_user_stack \n"
-        "pushf \n"
-        "pushl $0xf \n"
-        "pushl $_task_1 \n"
-        "iret"
-    );
-    _task_1();
+    switch_to_user(0xF, 0x17, &tss1_user_stack[4095], task_1);
 }
 

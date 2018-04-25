@@ -75,7 +75,7 @@ static inline void lldt(uint32_t ldt) {
     );
 }
 
-static inline void flush_sregs(uint16_t cs, uint16_t ds) {
+static inline void reload_sregs(uint16_t cs, uint16_t ds) {
     __asm__ volatile (
         "pushl %%eax \n"
         "pushl $1f \n"
@@ -97,11 +97,16 @@ static inline void memcpy(void *dest, void *src, uint32_t size) {
     );
 }
 
-static inline void move_to_user(void* user_stack) {
+static inline void switch_to_user(
+    uint32_t code_sel, uint32_t data_sel, void* user_stack, void* entry) {
     __asm__ volatile (
-        "pushl 0x18 \n"
-        "pushl (%%eax) \n"
-        : :"a"(user_stack)
+        "pushl %0 \n"
+        "pushl %1 \n"
+        "pushf \n"
+        "pushl %2 \n"
+        "pushl %3 \n"
+        "iret"
+        : :"m"(data_sel), "m"(user_stack), "m"(code_sel), "m"(entry)
     );
 }
 
