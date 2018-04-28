@@ -10,6 +10,8 @@ typedef long            int32_t;
 typedef unsigned long long uint64_t;
 typedef long long       int64_t;
 
+typedef uint32_t        size_t;
+
 typedef long            time_t;
 typedef int             error_t;
 

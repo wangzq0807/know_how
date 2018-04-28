@@ -1,6 +1,7 @@
 #include "superblk.h"
 #include "hard_disk.h"
 #include "asm.h"
+#include "string.h"
 
 static uint8_t buffer[512] = {0};
 

@@ -4,6 +4,8 @@
 #include "partion.h"
 #include "superblk.h"
 #include "log.h"
+#include "bitmap.h"
+#include "string.h"
 
 #define DIRECT_ZONE 7
 #define NUMBER_ZONE 10
@@ -88,5 +90,23 @@ error_t inode_ls(uint32_t inode)
     memcpy(&dir, buffer + 32*9, sizeof(struct Direction));
     print(dir.name); print(rt);
 
+    return 0;
+}
+
+error_t inode_new(uint32_t parent, const char* filename, uint16_t file_mode)
+{
+    struct Direction new_node_data[2] = { 0 };
+    // struct IndexNode new_inode = { 0 };
+    uint32_t new_inode_index = bitmap_inode_alloc();
+    // uint32_t new_znode_index = bitmap_znode_alloc();
+
+    new_node_data[0].inode = new_inode_index;
+    memcpy(new_node_data[0].name, ".", 2 * sizeof(char));
+    new_node_data[1].inode = parent;
+    memcpy(new_node_data[1].name, "..", 3 * sizeof(char));
+
+    // new_inode.file_mode = file_mode;
+    // new_inode.num_links = 1;
+    // new_inode.file_size = 2 * sizeof(struct Direction);
     return 0;
 }

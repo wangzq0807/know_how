@@ -89,14 +89,6 @@ static inline void reload_sregs(uint16_t cs, uint16_t ds) {
     );
 }
 
-static inline void memcpy(void *dest, void *src, uint32_t size) {
-    __asm__ volatile (
-        "cld \n"
-        "rep movsb \n"
-        : : "S"(src), "D"(dest), "c"(size)
-    );
-}
-
 static inline void switch_to_user(
     uint32_t code_sel, uint32_t data_sel, void* user_stack, void* entry) {
     __asm__ volatile (

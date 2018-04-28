@@ -1,6 +1,8 @@
 #include "asm.h"
 #include "partion.h"
 #include "hard_disk.h"
+#include "string.h"
+
 #define PARTION_POS (446)
 #define BOOT_FLAG (0xaa55)
 #define BOOT_FLAG_POS (510)
