@@ -15,13 +15,13 @@ static inline void memset(void *dest, int value, size_t size) {
 }
 
 static inline int strlen(const char *str) {
-    const char *itr = str;
-    while (*itr) itr++;
-    return itr - str;
+    int ret = 0;
+    for (; str[ret]; ret++) ;
+    return ret;
 }
 
 static inline int strcmp(const char *s1, const char *s2) {
-    while (*s1 == *s2) {
+    while ( *s1 && (*s1 == *s2)) {
         s1++;
         s2++;
     }

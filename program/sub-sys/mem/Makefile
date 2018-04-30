@@ -6,8 +6,7 @@ INCLUDES = -I ./ -I ./include
 BUILD_PATH = _build
 
 # 汇编源文件
-ASMSRCS = boot.S \
-		  intr.S
+ASMSRCS = boot.S
 # 查找所有的.c文件
 SOURCES = $(shell find ./ -name '*.c' -printf '%T@\t%p\n' \
 			| sort -k 1nr | cut -f2-)
