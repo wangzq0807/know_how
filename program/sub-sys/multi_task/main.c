@@ -280,6 +280,7 @@ start_main()
 
     sti();
 
+    current = 1;
     switch_to_user(0xF, 0x17, &tss1_user_stack[4095], task_1);
 }
 

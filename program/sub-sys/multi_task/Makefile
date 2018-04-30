@@ -6,7 +6,7 @@ INCLUDES = -I ./ -I ./include
 BUILD_PATH = _build
 
 # 汇编源文件
-ASMSRCS = head.S \
+ASMSRCS = boot.S \
 		  intr.S
 # 查找所有的.c文件
 SOURCES = $(shell find ./ -name '*.c' -printf '%T@\t%p\n' \
@@ -18,25 +18,19 @@ OBJECTS += $(patsubst %.c, $(BUILD_PATH)/%.o, $(SOURCES))
 DEPS = $(OBJECTS:.o=.d)
 
 all : dirs
-	@$(MAKE) hd.img --no-print-directory
+	@$(MAKE) floopy.img --no-print-directory
 
 # boot只需要代码区
 # kernel除了代码区以外还需要数据区和bss区等
-hd.img : boot kernel
-	@objcopy -j .text -O binary boot boot.img
+floopy.img : kernel
 	@objcopy -O binary kernel kernel.img
-	@echo "将内核写入虚拟磁盘hd.img..."
-	@dd if=boot.img of=hd.img bs=432 count=1 conv=notrunc
-	@dd if=kernel.img of=hd.img bs=512 count=60 seek=1 conv=notrunc
+	@echo "将内核写入虚拟磁盘floopy.img..."
+	@dd if=kernel.img of=floopy.img bs=512 count=17 conv=notrunc
 	@$(RM) boot.img kernel.img
-
-# 引导程序的链接规则
-boot : $(BUILD_PATH)/boot.o
-	$(LD) $(LDFLAGS) -Ttext 0x00 $^ -o boot
 
 # 内核的链接规则
 kernel : $(OBJECTS)
-	$(LD) $(LDFLAGS) -Ttext 0x00 $^ -o kernel
+	$(LD) $(LDFLAGS) -Ttext 0x7c00 $^ -o kernel
 
 # 源文件编译规则
 $(BUILD_PATH)/%.o : %.c
@@ -56,4 +50,4 @@ dirs:
 
 .PHONY:
 clean:
-	@$(RM) -rf kernel boot $(BUILD_PATH)/*
+	@$(RM) -rf kernel $(BUILD_PATH)/*

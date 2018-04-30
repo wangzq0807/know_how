@@ -21,11 +21,11 @@ vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest
 # FLOPPYA, FLOPPYB:
 # Point this to pathname of floppy image file or device
 #=======================================================================
-#floppya: 1_44="floopy.img", status=inserted
-ata0-master: type=disk, path="hd.img", mode=flat
+floppya: 1_44="floopy.img", status=inserted
+#ata0-master: type=disk, path="hd.img", mode=flat
 
 #=======================================================================
 # BOOT:
 #=======================================================================
-boot: disk
+boot: a
 
