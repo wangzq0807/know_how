@@ -1,8 +1,6 @@
 #include "main.h"
 #include "asm.h"
 
-void print(const char *buffer);
-
 /* 中断描述符 */
 struct X86Desc idt_table[256] = { 0 };
 struct X86DTR idt_ptr = { 0 };
@@ -13,13 +11,13 @@ struct X86DTR gdt_ptr = { 0 };
 uint32_t current = 1;
 /* 任务一 */
 struct X86TSS tss1 = { 0 };
-uint8_t tss1_kernal_stack[4096] = { 0 };
-uint8_t tss1_user_stack[4096] = { 0 };
+uint8_t tss1_kernal_stack[1024] = { 0 };
+uint8_t tss1_user_stack[1024] = { 0 };
 struct X86Desc tss1_ldt[3] = { 0 };
 /* 任务二 */
 struct X86TSS tss2 = { 0 };
-uint8_t tss2_kernal_stack[4096] = { 0 };
-uint8_t tss2_user_stack[4096] = { 0 };
+uint8_t tss2_kernal_stack[1024] = { 0 };
+uint8_t tss2_user_stack[1024] = { 0 };
 struct X86Desc tss2_ldt[3] = { 0 };
 
 /* 局部描述符 */
@@ -280,33 +278,5 @@ start_main()
 
     sti();
 
-    current = 1;
     switch_to_user(0xF, 0x17, &tss1_user_stack[4095], task_1);
-}
-
-
-#define SCREEN_ADR  0xB8000    /* 显存地址 */
-#define ONE_LINE    160        /* 一行的空间大小 */
-#define ONE_PAGE    0x1000     /* 一页的空间大小 */
-#define CHAR_PROP   0x0F       /* 字符属性(白色) */
-uint32_t cursor_pos = 0;
-void
-print(const char *buffer)
-{
-    for (uint32_t i = 0; i < 0xffff; ++i) {
-        char* next_addr = (char*)(SCREEN_ADR + (cursor_pos << 1));
-        if (buffer[i] == '\n') {
-            cursor_pos = (cursor_pos + 80) / 80 * 80;
-        }
-        else if (buffer[i] == '\0') {
-            return ;
-        }
-        else {
-            *next_addr = buffer[i];
-            *(next_addr+1) = CHAR_PROP;
-            ++cursor_pos;
-        }
-        if (cursor_pos >= 2000)
-            cursor_pos = 0;
-    }
 }

@@ -25,8 +25,8 @@ all : dirs
 floopy.img : kernel
 	@objcopy -O binary kernel kernel.img
 	@echo "将内核写入虚拟磁盘floopy.img..."
-	@dd if=kernel.img of=floopy.img bs=512 count=17 conv=notrunc
-	@$(RM) boot.img kernel.img
+	@dd if=kernel.img of=floopy.img bs=512 count=64 conv=notrunc
+	# @$(RM) boot.img kernel.img
 
 # 内核的链接规则
 kernel : $(OBJECTS)

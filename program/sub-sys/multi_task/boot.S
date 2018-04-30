@@ -3,7 +3,7 @@
  */
 BOOT_ADDR   = 0x7C00            /* 第一个扇区对应的内存地址 */
 SYS_ADDR    = 0x7C00 + 0x200    /* 第二个扇区对应的内存地址 */
-SYS_LEN		= 16
+SYS_LEN		= 63
 /* 第一个扇区，16位汇编 */
 .code16
 /*代码段*/
@@ -20,7 +20,7 @@ _start:
 	 * DL = drive number
 	 * ES:BX 数据读取到的位置
 	 ************************/
-	movw $(0x0200+SYS_LEN), %ax		/* 读16个扇区,共8KB */
+	movw $(0x0200+SYS_LEN), %ax		/* 读SYS_LEN个扇区 */
 	movw $0x0002, %cx				/* 从扇区2开始读 */
 	movw $0x0000, %dx				/* 磁盘第一面 */
     /* 将磁盘数据读取到SYS_ADDR */
@@ -82,9 +82,9 @@ x32_start:
 loop1:
     jmp loop1
 
-/* 4KB 堆栈 */
+/* 堆栈 */
 .align  4
-    .fill 1024, 4, 0
+    .fill 256, 4, 0
 init_stack:
     .long init_stack
     .word DATA_SEG
