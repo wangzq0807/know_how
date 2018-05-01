@@ -28,7 +28,6 @@ hd.img : boot kernel
 	@echo "将内核写入虚拟磁盘hd.img..."
 	@dd if=boot.img of=hd.img bs=432 count=1 conv=notrunc
 	@dd if=kernel.img of=hd.img bs=512 count=60 seek=1 conv=notrunc
-	@$(RM) boot.img kernel.img
 
 # 引导程序的链接规则
 boot : $(BUILD_PATH)/arch/boot.o
@@ -56,4 +55,4 @@ dirs:
 
 .PHONY:
 clean:
-	@$(RM) -rf kernel boot $(BUILD_PATH)/*
+	@$(RM) -rf boot.img kernel.img kernel boot $(BUILD_PATH)/*

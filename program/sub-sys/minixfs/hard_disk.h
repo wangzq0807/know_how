@@ -27,10 +27,15 @@
 #define IDE0_MAJOR          3
 #define HD_MAJOR            IDE0_MAJOR
 
-int ata_cmd(uint32_t lba_addr, uint16_t cnt, uint32_t cmd);
+typedef     uint32_t    lba_t;
 
-int ata_read(uint32_t lba_addr, uint16_t cnt, void *buffer);
-
-int ata_write(const void *buffer, uint32_t lba_addr, uint16_t cnt);
+// 检查驱动器是否能接收命令
+int ata_is_ready();
+// 发送命令
+int ata_cmd(lba_t lba_addr, uint8_t cnt, uint8_t cmd);
+// 读磁盘
+int ata_read(lba_t lba_addr, uint8_t cnt, void *buffer);
+// 写磁盘
+int ata_write(const void *buffer, lba_t lba_addr, uint8_t cnt);
 
 #endif
