@@ -14,6 +14,7 @@ typedef uint32_t        size_t;
 
 typedef long            time_t;
 typedef int             error_t;
+#define NO_ERROR    (0)
 
 #define BYTE1(val) ((val) & 0xFF)
 #define BYTE2(val) ((val) >> 8 & 0xFF)

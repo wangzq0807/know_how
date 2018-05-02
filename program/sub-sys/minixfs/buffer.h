@@ -2,30 +2,33 @@
 #define __BUFFER_H__
 #include "defs.h"
 
-#define BUFFER_CACHE        0x100000    // cache begin: 1M
-#define BUFFER_CACHE_END    0x500000    // cache end: 5M
-#define BUFFER_CACHE_SIZE   1024        // bytes cnt of per cache
+#define BLK_BUFFER          0x100000      // buffer begin: 1M
+#define BLK_BUFFER_END      0x500000      // buffer end: 5M
+#define BLK_BUFFER_SIZE     1024          // bytes cnt of per cache
 
-struct Buffer {
+// 缓冲区状态
+#define BUF_FREE            1       // 空缓冲区，可以被使用
+#define BUF_BUSY            2       // 正在读/写磁盘
+#define BUF_DELAYWRITE      3       // 缓冲区已经被进程释放，但内容还没有写入磁盘
+
+struct BlockBuffer {
     uint8_t *bf_data;
     uint16_t bf_refs;
     uint16_t bf_dev;            // dev num
     uint32_t bf_blk;            // block num
     uint32_t bf_status;
-    struct Buffer *bf_hash_prev;
-    struct Buffer *bf_hash_next;
-    struct Buffer *bf_prev;
-    struct Buffer *bf_next;
+    struct BlockBuffer *bf_hash_prev;
+    struct BlockBuffer *bf_hash_next;
+    struct BlockBuffer *bf_prev;
+    struct BlockBuffer *bf_next;
 };
 
-error_t setup_block_buffer();
+error_t init_block_buffer();
 
-struct Buffer *alloc_buffer();
+error_t free_block(struct BlockBuffer *buf);
 
-error_t free_buffer(struct Buffer *buf);
+const struct BlockBuffer *get_block(uint16_t dev, uint32_t blk);
 
-const struct Buffer *get_block(uint16_t dev, uint32_t blk);
-
-error_t put_block(const struct Buffer *buf);
+error_t put_block(const struct BlockBuffer *buf);
 
 #endif // __BUFFER_H__
