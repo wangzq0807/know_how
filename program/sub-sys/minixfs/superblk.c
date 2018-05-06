@@ -22,7 +22,7 @@ static struct SuperBlock super_blk;
 
 error_t superblk_load(uint32_t blk)
 {
-    ata_read(blk << 1, 1, &buffer);
+    // ata_read(blk << 1, 1, &buffer);
     memcpy(&super_blk, buffer, sizeof(super_blk));
     return 0;
 }

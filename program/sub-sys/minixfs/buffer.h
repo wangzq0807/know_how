@@ -8,12 +8,11 @@
 
 // 缓冲区状态
 #define BUF_FREE            1       // 空缓冲区，可以被使用
-#define BUF_BUSY            2       // 正在读/写磁盘
+#define BUF_BUSY            2       // 正在读/写磁盘，不允许被任何进程读或写
 #define BUF_DELAYWRITE      3       // 缓冲区已经被进程释放，但内容还没有写入磁盘
 
 struct BlockBuffer {
     uint8_t *bf_data;
-    uint16_t bf_refs;
     uint16_t bf_dev;            // dev num
     uint32_t bf_blk;            // block num
     uint32_t bf_status;
@@ -25,10 +24,10 @@ struct BlockBuffer {
 
 error_t init_block_buffer();
 
-error_t free_block(struct BlockBuffer *buf);
-
-const struct BlockBuffer *get_block(uint16_t dev, uint32_t blk);
+struct BlockBuffer *get_block(uint16_t dev, uint32_t blk);
 
 error_t put_block(const struct BlockBuffer *buf);
+
+error_t buffer_release(struct BlockBuffer *buf, int put_front);
 
 #endif // __BUFFER_H__

@@ -1,4 +1,19 @@
 #include "asm.h"
+#include "memory.h"
+#include "arch/arch.h"
+#include "hard_disk.h"
+#include "log.h"
+
+struct DiskRequest {
+    struct BlockBuffer  *dr_buf;
+    uint32_t            dr_cmd;
+    struct DiskRequest  *dr_next;
+};
+
+struct DiskRequest *disk_queue = NULL;
+struct DiskRequest **disk_queue_tail = &disk_queue;
+#define QUEUE_COUNT (PAGE_SIZE / sizeof(struct DiskRequest))
+#define BYTE_PER_BLK    (512*2)
 
 // ATA 寄存器(Primary Bus, Master Drives)
 #define ATA_REG_DATA        0x1F0   // 数据端口
@@ -22,6 +37,23 @@
 #define ATA_STATUS_FAULT    0x20    // 故障（除了ERR之外的，其他任何错误）
 #define ATA_STATUS_READY    0x40    // 能处理接收到的命令，没有发生错误
 #define ATA_STATUS_BUSY     0x80    // 正在准备发送/接口数据
+
+extern void on_disk_intr();
+static int do_request(struct DiskRequest *req);
+
+int
+init_disk()
+{
+    // 设置中磁盘中断
+    set_intr_gate(INTR_DISK, on_disk_intr);
+    // 初始化磁盘请求队列
+    disk_queue = new_page();
+    for (int i = 0; i < QUEUE_COUNT; ++i) {
+        disk_queue[i].dr_next = &disk_queue[i+1];
+    }
+    disk_queue[QUEUE_COUNT-1].dr_next = &disk_queue[0];
+    return 0;
+}
 
 int
 ata_cmd(uint32_t lba_addr, uint8_t cnt, uint8_t cmd)
@@ -71,27 +103,85 @@ ata_wait_ready()
 }
 
 int
-ata_read(uint32_t lba_addr, uint16_t cnt, void *buffer)
+ata_read(struct BlockBuffer *buffer)
 {
-    int err = ata_cmd(lba_addr, cnt, ATA_CMD_READ);
-    if (err != 0)   return err;
-    // TODO: wait drive ready
-    ata_wait_ready();
-    insw(256*cnt, ATA_REG_DATA, (uint32_t)buffer);
+    print("ata_read \n");
+    struct DiskRequest *req = *disk_queue_tail;
+    disk_queue_tail = &((*disk_queue_tail)->dr_next);
+    req->dr_buf = buffer;
+    req->dr_cmd = ATA_CMD_READ;
+
+    do_request(disk_queue);
+
+    sleep_for(buffer);
 
     return 0;
 }
 
 int
-ata_write(const void *buffer, uint32_t lba_addr, uint16_t cnt)
+ata_write(struct BlockBuffer *buffer)
 {
-    // send command
-    int err = ata_cmd(lba_addr, cnt, ATA_CMD_WRITE);
-    if (err != 0)   return err;
-    // TODO: wait drive ready
-    ata_wait_ready();
-    // begin write
-    outsw((uint32_t)buffer, 256*cnt, ATA_REG_DATA);
+    struct DiskRequest *req = *disk_queue_tail;
+    disk_queue_tail = &((*disk_queue_tail)->dr_next);
+    req->dr_buf = buffer;
+    req->dr_cmd = ATA_CMD_WRITE;
+
+    do_request(disk_queue);
+
+    sleep_for(buffer);
 
     return 0;
+}
+
+static int
+do_request(struct DiskRequest *req)
+{
+    // TODO : 电梯算法以后再实现
+    if (req == *disk_queue_tail || req->dr_buf == NULL)
+        return -1;
+    struct BlockBuffer *buffer = disk_queue->dr_buf;
+    const uint32_t lba_addr = buffer->bf_blk * 2;
+    const uint8_t cnt = 2;
+    const uint8_t cmd = req->dr_cmd;
+    print("do_request\n");
+    ata_cmd(lba_addr, cnt, cmd);
+
+    if (cmd == ATA_CMD_WRITE) {
+        ata_wait_ready();
+        // begin write
+        outsw(buffer->bf_data, BYTE_PER_BLK/2, ATA_REG_DATA);
+    }
+    return 0;
+}
+
+int
+on_disk_handler()
+{
+    print("on_disk_handler\n");
+    struct BlockBuffer *buffer = disk_queue->dr_buf;
+    if (disk_queue->dr_cmd == ATA_CMD_READ)
+        insw(BYTE_PER_BLK/2, ATA_REG_DATA, buffer->bf_data);
+    // 释放/解锁缓冲区
+    if (buffer->bf_status == BUF_DELAYWRITE)
+        buffer_release(disk_queue->dr_buf, 1);
+    else if (buffer->bf_status == BUF_BUSY)
+        buffer->bf_status = BUF_FREE;
+        // TODO:唤醒等待当前缓冲区的进程
+
+    disk_queue = disk_queue->dr_next;
+    do_request(disk_queue);
+
+    /* 设置8259A的OCW2,发送结束中断命令 */
+    outb(0x20, 0x20);
+    outb(0x20, 0xA0);
+
+    return 0;
+}
+
+void
+sleep_for(struct BlockBuffer *buffer)
+{
+    while (buffer->bf_status != BUF_FREE) {
+        pause();
+    }
 }

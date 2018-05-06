@@ -80,13 +80,8 @@ _init_timer()
 }
 
 void
-on_timer_handler()
+switch_task()
 {
-    /* 设置8259A的OCW2,发送结束中断命令 */
-    outb(0x20, 0x20);
-    outb(0x20, 0xA0);
-
-    print("timer");
     if (current == 1) {
         current = 2;
         __asm__ volatile (
@@ -99,6 +94,16 @@ on_timer_handler()
             "ljmp $0x18, $0 \n"
         );
     }
+}
+
+void
+on_timer_handler()
+{
+    /* 设置8259A的OCW2,发送结束中断命令 */
+    outb(0x20, 0x20);
+    outb(0x20, 0xA0);
+
+    // print("timer");
 }
 
 void
@@ -261,7 +266,7 @@ setup_tss()
 }
 
 void
-init_regs()
+init_cpu()
 {
     cli();
     setup_idt();
@@ -272,12 +277,12 @@ init_regs()
     _init_8259A();
     _init_timer();
 
-    /* 跳转到用户空间 */
-    ltr(0x18);
-    lldt(0x20);
+    // /* 跳转到用户空间 */
+    // ltr(0x18);
+    // lldt(0x20);
 
     sti();
 
-    switch_to_user(0xF, 0x17, &tss1_user_stack[4095], task_1);
+    // switch_to_user(0xF, 0x17, &tss1_user_stack[4095], task_1);
 }
 

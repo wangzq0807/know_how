@@ -1,4 +1,4 @@
-#include "mem.h"
+#include "memory.h"
 #include "defs.h"
 #include "log.h"
 
@@ -14,7 +14,7 @@ struct MemNode {
 struct MemListHead free_memory;
 
 void
-pre_init_mem(void *start, void *end)
+init_memory(void *start, void *end)
 {
     if ( (start > end)
         || (size_t)(start) & (PAGE_SIZE - 1)

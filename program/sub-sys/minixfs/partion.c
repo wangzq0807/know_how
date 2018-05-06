@@ -25,7 +25,7 @@ struct PartEntry partion_table[4];
 
 error_t partion_load()
 {
-    ata_read(0, 1, buffer);
+    // ata_read(0, 1, buffer);
     uint16_t bootable = *(uint16_t*)(buffer + BOOT_FLAG_POS);
     if (bootable != BOOT_FLAG)  return -1;
 

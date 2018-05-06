@@ -1,6 +1,7 @@
 #ifndef __HARD_DISK__
 #define __HARD_DISK__
 #include "defs.h"
+#include "buffer.h"
 // ATA registers(Primary Bus)
 #define ATA_REG_DATA        0x1F0
 #define ATA_REG_FEATURES    0x1F1
@@ -29,13 +30,12 @@
 
 typedef     uint32_t    lba_t;
 
-// 检查驱动器是否能接收命令
-int ata_is_ready();
-// 发送命令
-int ata_cmd(lba_t lba_addr, uint8_t cnt, uint8_t cmd);
+int init_disk();
 // 读磁盘
-int ata_read(lba_t lba_addr, uint8_t cnt, void *buffer);
+int ata_read(struct BlockBuffer *buffer);
 // 写磁盘
-int ata_write(const void *buffer, lba_t lba_addr, uint8_t cnt);
+int ata_write(struct BlockBuffer *buffer);
+
+void sleep_for(struct BlockBuffer *buffer);
 
 #endif

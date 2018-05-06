@@ -40,8 +40,8 @@ uint32_t inode_get_blknum(uint32_t inode)
 
 struct IndexNode inode_load(uint32_t inode)
 {
-    uint32_t blknum = inode_get_blknum(inode);
-    ata_read(blknum << 1, 2, buffer);
+    // uint32_t blknum = inode_get_blknum(inode);
+    // ata_read(blknum << 1, 2, buffer);
 
     struct IndexNode root_node;
     memcpy(&root_node, buffer + (inode -1)*sizeof(struct IndexNode), sizeof(struct IndexNode));
@@ -55,9 +55,9 @@ struct IndexNode inode_load(uint32_t inode)
 
 error_t inode_data_load(uint32_t inode, uint8_t *bf)
 {
-    struct IndexNode root_node = inode_load(inode);
-    uint32_t blknum = root_node.zones[0] + partion_get_start(0) / 2;
-    ata_read(blknum << 1, 2, bf);
+    // struct IndexNode root_node = inode_load(inode);
+    // uint32_t blknum = root_node.zones[0] + partion_get_start(0) / 2;
+    // ata_read(blknum << 1, 2, bf);
     return 0;
 }
 

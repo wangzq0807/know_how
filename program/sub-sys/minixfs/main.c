@@ -7,6 +7,8 @@
 #include "arch/arch.h"
 #include "log.h"
 #include "string.h"
+#include "buffer.h"
+#include "memory.h"
 
 #define ROOT_PARTION    0
 void init_filesystem()
@@ -27,7 +29,19 @@ void init_filesystem()
 
 void start_main()
 {
-    // init_regs();
+    init_cpu();
+    init_memory((void*)(5*1024*1024), (void*)(64*1024*1024));
+    init_disk();
+    init_block_buffer();
+    struct BlockBuffer *buffer = get_block(1, 0);
+    printx(buffer->bf_data[510]);
+    printx(buffer->bf_data[511]);
+    buffer = get_block(1, 1);
+    printx(buffer->bf_data[510]);
+    printx(buffer->bf_data[511]);
+    buffer = get_block(1, 0);
+    printx(buffer->bf_data[510]);
+    printx(buffer->bf_data[511]);
     // init_filesystem();
     // inode_ls(2);
 }

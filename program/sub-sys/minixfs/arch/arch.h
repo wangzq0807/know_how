@@ -72,6 +72,6 @@ struct X86TSS {
 void set_intr_gate(int32_t num, void *func_addr);
 void set_trap_gate(int32_t num, void *func_addr);
 
-void init_regs();
+void init_cpu();
 
 #endif // __ARCH_H__
