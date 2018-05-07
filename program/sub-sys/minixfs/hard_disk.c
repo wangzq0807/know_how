@@ -111,7 +111,8 @@ ata_read(struct BlockBuffer *buffer)
     req->dr_buf = buffer;
     req->dr_cmd = ATA_CMD_READ;
 
-    do_request(disk_queue);
+    if (do_request(disk_queue) == -1)
+        return -1;
 
     sleep_for(buffer);
 
@@ -126,7 +127,8 @@ ata_write(struct BlockBuffer *buffer)
     req->dr_buf = buffer;
     req->dr_cmd = ATA_CMD_WRITE;
 
-    do_request(disk_queue);
+    if (do_request(disk_queue) == -1)
+        return -1;
 
     sleep_for(buffer);
 
@@ -154,10 +156,13 @@ do_request(struct DiskRequest *req)
     return 0;
 }
 
-int
+void
 on_disk_handler()
 {
-    print("on_disk_handler\n");
+    /* 设置8259A的OCW2,发送结束中断命令 */
+    outb(0x20, 0x20);
+    outb(0x20, 0xA0);
+
     struct BlockBuffer *buffer = disk_queue->dr_buf;
     if (disk_queue->dr_cmd == ATA_CMD_READ)
         insw(BYTE_PER_BLK/2, ATA_REG_DATA, buffer->bf_data);
@@ -170,17 +175,12 @@ on_disk_handler()
 
     disk_queue = disk_queue->dr_next;
     do_request(disk_queue);
-
-    /* 设置8259A的OCW2,发送结束中断命令 */
-    outb(0x20, 0x20);
-    outb(0x20, 0xA0);
-
-    return 0;
 }
 
 void
 sleep_for(struct BlockBuffer *buffer)
 {
+    // TODO : 这里会被优化掉，变成死循环
     while (buffer->bf_status != BUF_FREE) {
         pause();
     }

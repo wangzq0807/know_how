@@ -1,6 +1,6 @@
 CC = gcc
 LD = ld
-CFLAGS = -g -O0  -m32 -Wall -Werror -ffreestanding -nostdinc
+CFLAGS = -g -O2  -m32 -Wall -Werror -ffreestanding -nostdinc
 LDFLAGS = -m elf_i386
 INCLUDES = -I ./ -I ./include
 BUILD_PATH = _build
@@ -19,15 +19,17 @@ DEPS = $(OBJECTS:.o=.d)
 
 all : dirs
 	@$(MAKE) hd.img --no-print-directory
-
+# NOTE: kernel.sym便于调试
 # boot只需要代码区
-# kernel除了代码区以外还需要数据区和bss区等
+# NOTE:kernel除了代码区以外还需要数据区和bss区等
 hd.img : boot kernel
 	@objcopy -j .text -O binary boot boot.img
 	@objcopy -O binary kernel kernel.img
+	@objdump -S kernel > kernel.sym
 	@echo "将内核写入虚拟磁盘hd.img..."
 	@dd if=boot.img of=hd.img bs=432 count=1 conv=notrunc
-	@dd if=kernel.img of=hd.img bs=512 count=60 seek=1 conv=notrunc
+	@dd if=/dev/zero of=hd.img bs=512 count=120 seek=1 conv=notrunc
+	@dd if=kernel.img of=hd.img bs=512 count=120 seek=1 conv=notrunc
 
 # 引导程序的链接规则
 boot : $(BUILD_PATH)/arch/boot.o
@@ -55,4 +57,4 @@ dirs:
 
 .PHONY:
 clean:
-	@$(RM) -rf boot.img kernel.img kernel boot $(BUILD_PATH)/*
+	@$(RM) -rf boot.img kernel.img kernel.sym kernel boot $(BUILD_PATH)/*

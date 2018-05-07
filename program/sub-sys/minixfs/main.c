@@ -30,7 +30,7 @@ void init_filesystem()
 void start_main()
 {
     init_cpu();
-    init_memory((void*)(5*1024*1024), (void*)(64*1024*1024));
+    init_memory(5*1024*1024, 64*1024*1024);
     init_disk();
     init_block_buffer();
     struct BlockBuffer *buffer = get_block(1, 0);
