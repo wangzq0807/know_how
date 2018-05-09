@@ -31,7 +31,7 @@ struct Direction {
 
 uint32_t inode_get_blknum(uint32_t inode)
 {
-    uint32_t nstart = partion_get_start(0) / 2;
+    uint32_t nstart = 10 / 2;
     nstart += 2;    // begin + boot + super;
     nstart += superblk_get_imap_blocks();
     nstart += superblk_get_zmap_blocks();

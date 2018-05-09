@@ -168,7 +168,7 @@ on_disk_handler()
         insw(BYTE_PER_BLK/2, ATA_REG_DATA, buffer->bf_data);
     // 释放/解锁缓冲区
     if (buffer->bf_status == BUF_DELAYWRITE)
-        buffer_release(disk_queue->dr_buf, 1);
+        release_block(disk_queue->dr_buf);
     else if (buffer->bf_status == BUF_BUSY)
         buffer->bf_status = BUF_FREE;
         // TODO:唤醒等待当前缓冲区的进程
@@ -180,8 +180,10 @@ on_disk_handler()
 void
 sleep_for(struct BlockBuffer *buffer)
 {
-    // TODO : 这里会被优化掉，变成死循环
     while (buffer->bf_status != BUF_FREE) {
+        // NOTE : 告诉gcc，内存被修改，必须重新从内存中读取bf_status的值
+        // 如果不注明的话，判断条件仅会执行一次，从而形成死循环
+        asm volatile("":::"memory");
         pause();
     }
 }

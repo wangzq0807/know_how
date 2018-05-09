@@ -12,4 +12,6 @@ void *new_page();
 
 int free_page(void *page);
 
+int get_free_space();
+
 #endif

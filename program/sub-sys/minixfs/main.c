@@ -11,10 +11,13 @@
 #include "memory.h"
 
 #define ROOT_PARTION    0
-void init_filesystem()
+
+static void
+init_filesystem()
 {
-    partion_load();
-    const uint32_t nstart = partion_get_start(ROOT_PARTION);
+    init_partion();
+    struct PartionEntity *entity = get_partion_entity(ROOT_PARTION);
+    const uint32_t nstart = entity->pe_lba_start;
     const uint32_t superblk_pos = nstart / 2 + 1;
     superblk_load(superblk_pos);
 
@@ -27,21 +30,14 @@ void init_filesystem()
     bitmap_znode_load(znode_pos, zcnt);
 }
 
-void start_main()
+void
+start_main()
 {
     init_cpu();
     init_memory(5*1024*1024, 64*1024*1024);
     init_disk();
     init_block_buffer();
-    struct BlockBuffer *buffer = get_block(1, 0);
-    printx(buffer->bf_data[510]);
-    printx(buffer->bf_data[511]);
-    buffer = get_block(1, 1);
-    printx(buffer->bf_data[510]);
-    printx(buffer->bf_data[511]);
-    buffer = get_block(1, 0);
-    printx(buffer->bf_data[510]);
-    printx(buffer->bf_data[511]);
+    init_filesystem();
     // init_filesystem();
     // inode_ls(2);
 }

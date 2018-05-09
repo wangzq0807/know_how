@@ -166,12 +166,15 @@ buffer_new( )
 // 1. 一个进程不再需要这个缓冲区
 // 2. 磁盘读/写完成后
 error_t
-buffer_release(struct BlockBuffer *buf, int put_front)
+release_block(struct BlockBuffer *buf)
 {
     // TODO: 唤醒等待当前缓冲区的进程
     // TODO: 唤醒等待空闲缓冲区的进程
-    if (put_front != 0) {
+    if (buf->bf_status == BUF_DELAYWRITE) {
 
+    }
+    else {
+        
     }
     return 0;
 }

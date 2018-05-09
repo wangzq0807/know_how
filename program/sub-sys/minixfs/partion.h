@@ -2,12 +2,22 @@
 #define __PARTION__
 #include "defs.h"
 
-error_t partion_load();
+struct PartionEntity {
+    uint8_t pe_indicator;
+    uint8_t pe_start_header;
+    uint8_t pe_start_sector;
+    uint8_t pe_start_cylinder;
+    uint8_t pe_system_id;
+    uint8_t pe_end_header;
+    uint8_t pe_end_sector;
+    uint8_t pe_end_cylinder;
+    uint32_t pe_lba_start;
+    uint32_t pe_total_sector;
+};
 
-uint32_t partion_get_active();
+error_t init_partion();
 
-uint32_t partion_get_start(uint32_t i);
+struct PartionEntity * get_partion_entity(uint32_t i);
 
-uint32_t partion_get_totalsector(uint32_t i);
 
 #endif // __PARTION__

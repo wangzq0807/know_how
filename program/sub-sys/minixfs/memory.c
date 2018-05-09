@@ -54,3 +54,15 @@ free_page(void *page)
     free_memory.m_free = node;
     return 0;
 }
+
+int
+get_free_space()
+{
+    struct MemNode *node = free_memory.m_free;
+    int cnt = 0;
+    while (node != NULL) {
+        cnt++;
+        node = node->m_next;
+    }
+    return cnt;
+}
