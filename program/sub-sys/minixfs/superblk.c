@@ -2,42 +2,42 @@
 #include "hard_disk.h"
 #include "asm.h"
 #include "string.h"
+#include "partion.h"
+#include "log.h"
+#include "buffer.h"
+#include "fs.h"
+#include "partion.h"
 
-static uint8_t buffer[512] = {0};
+static struct SuperBlock super_blk[4];
 
-struct SuperBlock {
-    uint16_t    inodes;                 // inode number
-    uint16_t    nzones;                 // not usable, replaced by zones
-    int16_t     imap_blocks;            // blocks need by inode map
-    int16_t     zmap_blocks;            // blocks need by zone map
-    uint16_t    first_datazone;         // first block number of datazone
-    int16_t     log_zone_size;          // log2 of block/zone
-    uint32_t    max_file_size;          // max file size
-    int16_t     magic;                  // magic
-    int16_t     padding;                // not usable
-    uint32_t    zones;                  // zone number
-};
-
-static struct SuperBlock super_blk;
-
-error_t superblk_load(uint32_t blk)
+// NOTE : dev unused
+uint32_t
+get_super_block_pos(uint16_t dev)
 {
-    // ata_read(blk << 1, 1, &buffer);
-    memcpy(&super_blk, buffer, sizeof(super_blk));
-    return 0;
+    struct PartionEntity *entity = get_partion_entity(ROOT_DEVICE);
+    const uint32_t nstart = entity->pe_lba_start / PER_BLOCK_SECTORS;
+    const uint32_t superblk_pos = nstart + SUPER_BLOCK_POS;
+    return superblk_pos;
 }
 
-uint32_t superblk_get_imap_blocks()
+// NOTE : dev unused
+error_t
+init_super_block(uint16_t dev)
 {
-    return super_blk.imap_blocks;
+    error_t ret = 0;
+    uint32_t pos = get_super_block_pos(dev);
+    struct BlockBuffer *buffer = get_block(dev, pos);
+    memcpy(&super_blk[0], buffer->bf_data, sizeof(super_blk));
+    if (super_blk[0].sb_magic != MINIX_V2 ) {
+        ret = -1;
+    }
+    release_block(buffer);
+    return ret;
 }
 
-uint32_t superblk_get_zmap_blocks()
+// NOTE : dev unused
+const struct SuperBlock *
+get_super_block(uint16_t dev)
 {
-    return super_blk.zmap_blocks;
-}
-
-uint32_t superblk_get_first_datablk()
-{
-    return super_blk.first_datazone;
+    return &super_blk[0];
 }

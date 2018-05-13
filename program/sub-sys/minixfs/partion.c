@@ -16,6 +16,7 @@ error_t
 init_partion()
 {
     // 获取磁盘上第一个块
+    // NOTE : dev unused
     struct BlockBuffer *buffer = get_block(1, 0);
 
     uint16_t bootable = *(uint16_t*)(buffer->bf_data + BOOT_FLAG_POS);
@@ -28,7 +29,8 @@ init_partion()
 }
 
 struct PartionEntity *
-get_partion_entity(uint32_t i)
+get_partion_entity(uint16_t dev)
 {
-    return &partion_table[i];
+    // NOTE : dev unused
+    return &partion_table[0];
 }

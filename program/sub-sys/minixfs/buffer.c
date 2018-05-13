@@ -107,9 +107,7 @@ get_block(uint16_t dev, uint32_t blk)
             }
             return buf;
         }
-        print("buffer_new  ");
         struct BlockBuffer * new_buffer = buffer_new();
-        printx((uint32_t)new_buffer);
         if (new_buffer == NULL) {
             // 4. free list已经为空
             // TODO: sleep
@@ -118,10 +116,10 @@ get_block(uint16_t dev, uint32_t blk)
         else if (new_buffer->bf_status == BUF_DELAYWRITE) {
             // 3. 新申请的缓冲区的状态是"delay write"，因此需要先写入，然后申请另一块
             // TODO : 写磁盘，写完成后重新放入free list
+            // NOTE : 不能由中断响应函数来释放这个缓冲区
             continue;
         }
         else {
-            print("get_block 2\n");
             // 2. Hash表中没有找到指定block，新申请一块空的缓冲区
             remove_hash_entity(new_buffer);
             new_buffer->bf_dev = dev;

@@ -17,7 +17,7 @@ struct PartionEntity {
 
 error_t init_partion();
 
-struct PartionEntity * get_partion_entity(uint32_t i);
+struct PartionEntity * get_partion_entity(uint16_t i);
 
 
 #endif // __PARTION__

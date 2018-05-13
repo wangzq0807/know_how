@@ -105,7 +105,6 @@ ata_wait_ready()
 int
 ata_read(struct BlockBuffer *buffer)
 {
-    print("ata_read \n");
     struct DiskRequest *req = *disk_queue_tail;
     disk_queue_tail = &((*disk_queue_tail)->dr_next);
     req->dr_buf = buffer;
@@ -145,7 +144,6 @@ do_request(struct DiskRequest *req)
     const uint32_t lba_addr = buffer->bf_blk * 2;
     const uint8_t cnt = 2;
     const uint8_t cmd = req->dr_cmd;
-    print("do_request\n");
     ata_cmd(lba_addr, cnt, cmd);
 
     if (cmd == ATA_CMD_WRITE) {

@@ -31,10 +31,11 @@ struct Direction {
 
 uint32_t inode_get_blknum(uint32_t inode)
 {
+    // const struct SuperBlock *super_block = get_super_block(0);
     uint32_t nstart = 10 / 2;
     nstart += 2;    // begin + boot + super;
-    nstart += superblk_get_imap_blocks();
-    nstart += superblk_get_zmap_blocks();
+    // nstart += super_block->sb_;
+    // nstart += super_block->sb_;
     return nstart + ((inode - 1) * sizeof(struct IndexNode)) / 1024;
 }
 
