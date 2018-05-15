@@ -15,7 +15,7 @@ struct PartionEntity {
     uint32_t pe_total_sector;
 };
 
-error_t init_partion();
+error_t init_partion(uint16_t dev);
 
 struct PartionEntity * get_partion_entity(uint16_t i);
 

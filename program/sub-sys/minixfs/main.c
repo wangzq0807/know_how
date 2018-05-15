@@ -12,12 +12,12 @@
 #include "fs.h"
 
 static void
-init_filesystem()
+init_filesystem(uint16_t dev)
 {
-    init_partion();
-    const uint32_t superblk_pos = get_super_block_pos(ROOT_DEVICE);
-    init_super_block(ROOT_DEVICE);
-    const struct SuperBlock *super_block = get_super_block(ROOT_DEVICE);
+    init_partion(dev);
+    const uint32_t superblk_pos = get_super_block_pos(dev);
+    init_super_block(dev);
+    const struct SuperBlock *super_block = get_super_block(dev);
 
     uint32_t icnt = super_block->sb_imap_blocks;
     uint32_t zcnt = super_block->sb_zmap_blocks;
@@ -35,7 +35,7 @@ start_main()
     init_memory(5*1024*1024, 64*1024*1024);
     init_disk();
     init_block_buffer();
-    init_filesystem();
+    init_filesystem(ROOT_DEVICE);
     // init_filesystem();
     // inode_ls(2);
 }

@@ -12,18 +12,21 @@
 
 struct PartionEntity partion_table[PARTION_NUM];
 
+// NOTE: dev unused
 error_t
-init_partion()
+init_partion(uint16_t dev)
 {
     // 获取磁盘上第一个块
     // NOTE : dev unused
     struct BlockBuffer *buffer = get_block(1, 0);
 
     uint16_t bootable = *(uint16_t*)(buffer->bf_data + BOOT_FLAG_POS);
-    if (bootable != BOOT_FLAG)  return -1;
+    if (bootable != BOOT_FLAG) {
+        return -1;
+        release_block(buffer);
+    }
 
     memcpy((void*)partion_table, buffer->bf_data + PARTION_POS, PARTION_NUM*sizeof(struct PartionEntity));
-
     release_block(buffer);
     return 0;
 }
