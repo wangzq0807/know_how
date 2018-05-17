@@ -4,7 +4,7 @@
 #include "partion.h"
 #include "superblk.h"
 #include "log.h"
-#include "bitmap.h"
+#include "nodes.h"
 #include "string.h"
 
 #define DIRECT_ZONE 7
@@ -98,7 +98,7 @@ error_t inode_new(uint32_t parent, const char* filename, uint16_t file_mode)
 {
     struct Direction new_node_data[2] = { 0 };
     // struct IndexNode new_inode = { 0 };
-    uint32_t new_inode_index = bitmap_inode_alloc();
+    uint32_t new_inode_index = 0;//bitmap_inode_alloc();
     // uint32_t new_znode_index = bitmap_znode_alloc();
 
     new_node_data[0].inode = new_inode_index;

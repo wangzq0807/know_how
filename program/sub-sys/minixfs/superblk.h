@@ -1,5 +1,5 @@
-#ifndef __SUPERBLK__
-#define __SUPERBLK__
+#ifndef __SUPERBLK_H__
+#define __SUPERBLK_H__
 #include "defs.h"
 
 // minix v2 文件系统
@@ -18,8 +18,8 @@ struct SuperBlock {
 
 error_t init_super_block(uint16_t dev);
 
-uint32_t get_super_block_pos(uint16_t dev);
+uint32_t get_super_block_begain(uint16_t dev);
 
 const struct SuperBlock *get_super_block(uint16_t dev);
 
-#endif // __SUPERBLK__
+#endif // __SUPERBLK_H__

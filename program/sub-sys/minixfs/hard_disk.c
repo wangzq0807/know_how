@@ -3,6 +3,7 @@
 #include "arch/arch.h"
 #include "hard_disk.h"
 #include "log.h"
+#include "fs.h"
 
 struct DiskRequest {
     struct BlockBuffer  *dr_buf;
@@ -13,7 +14,7 @@ struct DiskRequest {
 struct DiskRequest *disk_queue = NULL;
 struct DiskRequest **disk_queue_tail = &disk_queue;
 #define QUEUE_COUNT (PAGE_SIZE / sizeof(struct DiskRequest))
-#define BYTE_PER_BLK    (512*2)
+#define BYTE_PER_BLK            (512*PER_BLOCK_SECTORS)
 
 // ATA 寄存器(Primary Bus, Master Drives)
 #define ATA_REG_DATA        0x1F0   // 数据端口
@@ -141,15 +142,15 @@ do_request(struct DiskRequest *req)
     if (req == *disk_queue_tail || req->dr_buf == NULL)
         return -1;
     struct BlockBuffer *buffer = disk_queue->dr_buf;
-    const uint32_t lba_addr = buffer->bf_blk * 2;
-    const uint8_t cnt = 2;
+    const uint32_t lba_addr = buffer->bf_blk * PER_BLOCK_SECTORS;
+    const uint8_t cnt = PER_BLOCK_SECTORS;
     const uint8_t cmd = req->dr_cmd;
     ata_cmd(lba_addr, cnt, cmd);
 
     if (cmd == ATA_CMD_WRITE) {
         ata_wait_ready();
         // begin write
-        outsw(buffer->bf_data, BYTE_PER_BLK/2, ATA_REG_DATA);
+        outsw(buffer->bf_data, BYTE_PER_BLK, ATA_REG_DATA);
     }
     return 0;
 }
@@ -163,7 +164,7 @@ on_disk_handler()
 
     struct BlockBuffer *buffer = disk_queue->dr_buf;
     if (disk_queue->dr_cmd == ATA_CMD_READ)
-        insw(BYTE_PER_BLK/2, ATA_REG_DATA, buffer->bf_data);
+        insw(BYTE_PER_BLK, ATA_REG_DATA, buffer->bf_data);
     // 释放/解锁缓冲区
     if (buffer->bf_status == BUF_DELAYWRITE)
         release_block(disk_queue->dr_buf);

@@ -2,7 +2,7 @@
 #include "hard_disk.h"
 #include "partion.h"
 #include "superblk.h"
-#include "bitmap.h"
+#include "nodes.h"
 #include "inode.h"
 #include "arch/arch.h"
 #include "log.h"
@@ -15,17 +15,8 @@ static void
 init_filesystem(uint16_t dev)
 {
     init_partion(dev);
-    const uint32_t superblk_pos = get_super_block_pos(dev);
     init_super_block(dev);
-    const struct SuperBlock *super_block = get_super_block(dev);
 
-    uint32_t icnt = super_block->sb_imap_blocks;
-    uint32_t zcnt = super_block->sb_zmap_blocks;
-
-    const uint32_t inode_pos = superblk_pos + SUPER_BLOCK_SIZE;
-    bitmap_inode_load(inode_pos, icnt);
-    const uint32_t znode_pos = inode_pos + icnt;
-    bitmap_znode_load(znode_pos, zcnt);
 }
 
 void
