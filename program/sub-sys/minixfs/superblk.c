@@ -41,3 +41,16 @@ get_super_block(uint16_t dev)
 {
     return &super_blk[0];
 }
+
+void
+dump_super_block(uint16_t dev)
+{
+    const struct SuperBlock *sb = get_super_block(dev);
+    print("sb_magic"); printx(sb->sb_magic); print("\n");
+    print("sb_inodes"); printx(sb->sb_inodes); print("\n");
+    print("sb_zones"); printx(sb->sb_zones); print("\n");
+    print("sb_imap_blocks"); printx(sb->sb_imap_blocks); print("\n");
+    print("sb_zmap_blocks"); printx(sb->sb_zmap_blocks); print("\n");
+    print("sb_first_datazone"); printx(sb->sb_first_datazone); print("\n");
+    print("sb_log_zone_size"); printx(sb->sb_log_zone_size); print("\n");
+}

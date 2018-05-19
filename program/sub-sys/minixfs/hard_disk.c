@@ -48,7 +48,7 @@ init_disk()
     // 设置中磁盘中断
     set_intr_gate(INTR_DISK, on_disk_intr);
     // 初始化磁盘请求队列
-    disk_queue = new_page();
+    disk_queue = alloc_page();
     for (int i = 0; i < QUEUE_COUNT; ++i) {
         disk_queue[i].dr_next = &disk_queue[i+1];
     }
@@ -150,7 +150,7 @@ do_request(struct DiskRequest *req)
     if (cmd == ATA_CMD_WRITE) {
         ata_wait_ready();
         // begin write
-        outsw(buffer->bf_data, BYTE_PER_BLK, ATA_REG_DATA);
+        outsw(buffer->bf_data, BYTE_PER_BLK/2, ATA_REG_DATA);
     }
     return 0;
 }
@@ -164,7 +164,7 @@ on_disk_handler()
 
     struct BlockBuffer *buffer = disk_queue->dr_buf;
     if (disk_queue->dr_cmd == ATA_CMD_READ)
-        insw(BYTE_PER_BLK, ATA_REG_DATA, buffer->bf_data);
+        insw(BYTE_PER_BLK/2, ATA_REG_DATA, buffer->bf_data);
     // 释放/解锁缓冲区
     if (buffer->bf_status == BUF_DELAYWRITE)
         release_block(disk_queue->dr_buf);

@@ -19,8 +19,8 @@ error_t remove_from_freelist(struct BlockBuffer *buf);
 error_t
 init_block_buffer()
 {
-    free_buffers = (struct BlockBuffer*)new_page();
-    // hash_map = (struct BlockBuffer*)new_page();
+    free_buffers = (struct BlockBuffer*)alloc_page();
+    // hash_map = (struct BlockBuffer*)alloc_page();
 
     struct BlockBuffer *iter;
     struct BlockBuffer *prev = &free_buffers[0];

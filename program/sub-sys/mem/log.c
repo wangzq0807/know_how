@@ -1,12 +1,4 @@
-#ifndef __MAIN_H__
-#define __MAIN_H__
-#include "defs.h"
-
-void *
-new_page();
-
-void
-free_page(void *page);
+#include "log.h"
 
 #define SCREEN_ADR  0xB8000    /* 显存地址 */
 #define ONE_LINE    160        /* 一行的空间大小 */
@@ -49,4 +41,17 @@ printx(uint32_t val)
     print(buffer);
 }
 
-#endif
+void
+printxw(uint16_t val)
+{
+    char buffer[] = { "0x0000 " };
+    for (int32_t i = 0; i < 4; ++i) {
+        int32_t hex = val & 0xF;
+        if (hex > 9)
+            buffer[5-i] = (0x41 - 10) + hex;
+        else
+            buffer[5-i] = 0x30 + hex;
+        val = val >> 4;
+    }
+    print(buffer);
+}

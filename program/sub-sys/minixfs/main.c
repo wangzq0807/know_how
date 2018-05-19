@@ -16,7 +16,7 @@ init_filesystem(uint16_t dev)
 {
     init_partion(dev);
     init_super_block(dev);
-
+    init_nodes(dev);
 }
 
 void

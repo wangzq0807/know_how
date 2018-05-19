@@ -6,28 +6,12 @@
 #include "log.h"
 #include "nodes.h"
 #include "string.h"
+#include "sys/stat.h"
 
 #define DIRECT_ZONE 7
 #define NUMBER_ZONE 10
 
-struct IndexNode {
-    uint16_t    file_mode;      // file type, auth,
-    int16_t     num_links;      // the number of linking to this file
-    int16_t     owner_id;       // owner's id
-    int8_t      group_id;       // goup's id
-    uint32_t    file_size;      // file size in types
-    time_t      atime;          // access time
-    time_t      mtime;          // modify time
-    time_t      ctime;          // create time
-    uint32_t    zones[NUMBER_ZONE];      // zone
-};
 static uint8_t buffer[1024] = {0};
-
-#define DIR_LEN     30
-struct Direction {
-    uint16_t    inode;
-    char        name[DIR_LEN];
-};
 
 uint32_t inode_get_blknum(uint32_t inode)
 {
@@ -46,9 +30,9 @@ struct IndexNode inode_load(uint32_t inode)
 
     struct IndexNode root_node;
     memcpy(&root_node, buffer + (inode -1)*sizeof(struct IndexNode), sizeof(struct IndexNode));
-    if (S_ISDIR(root_node.file_mode))
+    if (S_ISDIR(root_node.in_file_mode))
         return root_node;
-    else if (S_ISREG(root_node.file_mode))
+    else if (S_ISREG(root_node.in_file_mode))
         return root_node;
 
     return root_node;

@@ -20,6 +20,8 @@ error_t init_super_block(uint16_t dev);
 
 uint32_t get_super_block_begain(uint16_t dev);
 
-const struct SuperBlock *get_super_block(uint16_t dev);
+const struct SuperBlock * get_super_block(uint16_t dev);
+
+void dump_super_block(uint16_t dev);
 
 #endif // __SUPERBLK_H__

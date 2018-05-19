@@ -22,7 +22,7 @@ struct BlockBuffer {
     struct BlockBuffer *bf_next;
 };
 
-error_t init_block_buffer();
+error_t init_block_buffer(void);
 
 struct BlockBuffer *get_block(uint16_t dev, uint32_t blk);
 
