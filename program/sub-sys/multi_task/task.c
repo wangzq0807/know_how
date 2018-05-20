@@ -1,6 +1,7 @@
 #include "task.h"
 #include "log.h"
 #include "asm.h"
+#include "lock.h"
 
 /* 中断描述符 */
 struct X86Desc idt_table[256] = { 0 };
@@ -29,8 +30,14 @@ struct X86DTR ldt_ptr_2 = { 0 };
 
 extern void on_timer_intr();
 extern void on_ignore_intr();
+extern void on_syscall_intr();
 static void task_1();
 static void task_2();
+
+// 竞争资源
+struct Mutex my_mutex;
+uint32_t conf_res1 = 1;
+uint32_t conf_res2 = 1;
 
 /* 中断门: 中断正在处理时,IF清0,从而屏蔽其他中断 */
 void
@@ -50,6 +57,15 @@ set_trap_gate(int32_t num, void *func_addr)
     const uint32_t offset = (uint32_t)func_addr;
     idt_table[num].d_low = (selector << 16) | (offset & 0xFFFF);
     idt_table[num].d_high = (offset & 0xFFFF0000) | GATE_TRAP_FLAG;
+}
+
+void
+set_sys_call()
+{
+    const uint32_t selector = KNL_CS;
+    const uint32_t offset = (uint32_t)on_syscall_intr;
+    idt_table[0x80].d_low = (selector << 16) | (offset & 0xFFFF);
+    idt_table[0x80].d_high = (offset & 0xFFFF0000) | 0xef00;
 }
 
 static void
@@ -90,6 +106,8 @@ setup_idt()
     }
     /* 设置时钟中断 */
     set_intr_gate(INTR_TIMER, &on_timer_intr);
+    /* 系统调用 */
+    set_sys_call();
     /* 重新加载idt */
     const uint32_t base_addr = (uint32_t)(&idt_table);
     idt_ptr.r_limit = 256*8 -1;
@@ -201,50 +219,8 @@ setup_tss()
     tss2.t_LDT = (uint32_t)0x30;
 }
 
-
-static void
-task_1()
+void switch_task()
 {
-    __asm__ volatile (
-        "mov $0x17, %%ax \n"
-        "mov %%ax, %%ds \n"
-        : : : "%eax"
-    );
-
-    while( 1 ) {
-        // 延时
-        int cnt = 100000;
-        while(cnt--)
-            pause();
-        print("A");
-    }
-}
-
-static void
-task_2()
-{
-    __asm__ volatile (
-        "mov $0x17, %%ax \n"
-        "mov %%ax, %%ds \n"
-        : : : "eax"
-    );
-
-    while( 1 ) {
-        // 延时
-        int cnt = 100000;
-        while(cnt--)
-            pause();
-        print("B");
-    }
-}
-
-void
-on_timer_handler()
-{
-    /* 设置8259A的OCW2,发送结束中断命令 */
-    outb(0x20, 0x20);
-    outb(0x20, 0xA0);
-
     // NOTE：task1经过跳转到task2，task2再跳转回task1时，会从ljmp的下一条指令开始执行。
     // NOTE：下面这种切换方式是抢占式的，单核情况下，当两个线程需要同步时，加锁必须是原子操作
     // NOTE：对与非抢占式的内核，加锁无需原子操作
@@ -262,6 +238,81 @@ on_timer_handler()
     }
 }
 
+static void
+task_1()
+{
+    __asm__ volatile (
+        "mov $0x17, %%ax \n"
+        "mov %%ax, %%ds \n"
+        : : : "%eax"
+    );
+
+    while( 1 ) {
+        if (acquire_mutex(&my_mutex) == 0) {
+            // 下面是受保护的代码
+            conf_res1 = 1111;
+            conf_res2 = 2222;
+            __asm__ volatile("nop":::"memory");
+            if (conf_res1 != 1111 || conf_res2 != 2222)
+                print("A");
+            else
+                print("C");
+            release_mutex(&my_mutex);
+        }
+        else {
+            __asm__ volatile("int $0x80");
+        }
+        // 延时
+        // NOTE : 如果从释放锁到重新申请锁的时间过短，
+        // 那么其他线程获得锁的几率就会非常小。
+        int cnt = 100000;
+        while(cnt--)
+            pause();
+    }
+}
+
+static void
+task_2()
+{
+    __asm__ volatile (
+        "mov $0x17, %%ax \n"
+        "mov %%ax, %%ds \n"
+        : : : "eax"
+    );
+
+    while( 1 ) {
+        if (acquire_mutex(&my_mutex) == 0) {
+            // 下面是受保护的代码
+            conf_res2 = 4444;
+            conf_res1 = 3333;
+            __asm__ volatile("nop":::"memory");
+            if (conf_res1 != 3333 || conf_res2 != 4444)
+                print("B");
+            else
+                print("D");
+            release_mutex(&my_mutex);
+        }
+        else {
+            __asm__ volatile("int $0x80");
+        }
+        // 延时
+        // NOTE : 如果从释放锁到重新申请锁的时间过短，
+        // 那么其他线程获得锁的几率就会非常小。
+        int cnt = 100000;
+        while(cnt--)
+            pause();
+    }
+}
+
+void
+on_timer_handler()
+{
+    /* 设置8259A的OCW2,发送结束中断命令 */
+    outb(0x20, 0x20);
+    outb(0x20, 0xA0);
+    switch_task();
+}
+
 void
 on_ignore_handler()
 {
@@ -271,8 +322,22 @@ on_ignore_handler()
 }
 
 void
+on_syscall_handler()
+{
+    __asm__ volatile (
+        "mov $0x10, %%ax \n"
+        "mov %%ax, %%ds \n"
+        : : : "eax"
+    );
+
+    switch_task();
+}
+
+void
 start_task()
 {
+    init_mutex(&my_mutex);
+
     cli();
     setup_idt();
     setup_gdt();
