@@ -16,20 +16,39 @@
     ret;                    \
 })
 
-void init_memory(uint32_t start, uint32_t end);
+void
+init_memory(uint32_t start, uint32_t end);
 
-void * alloc_page(void);
+//============
+// 页面管理
+void *
+alloc_page(void);
 
-int free_page(void *page);
+int
+free_page(void *page);
 
-int get_free_space(void);
+int
+get_free_space(void);
 
-void * alloc_object(uint32_t log_size);
+//=============
+// 切片管理
+void *
+malloc(uint32_t log_size);
+int
+mfree(void *obj, uint32_t log_size);
 
-int free_n_object(void *obj, uint32_t log_size, uint32_t num);
+//==============
+// 对象管理
+enum EObjectType {
+    ENoneType = 0,
+    EIndexNode,
+    EObjectMax
+};
 
-static inline int free_object(void *obj, uint32_t log_size) {
-    return free_n_object(obj, log_size, 1);
-}
+void *
+alloc_object(enum EObjectType eObj, uint32_t objsize);
+
+int
+free_object(void *obj, enum EObjectType eObj, uint32_t objsize);
 
 #endif
