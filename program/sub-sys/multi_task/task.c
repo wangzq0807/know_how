@@ -1,4 +1,5 @@
-#include "main.h"
+#include "task.h"
+#include "log.h"
 #include "asm.h"
 
 /* 中断描述符 */
