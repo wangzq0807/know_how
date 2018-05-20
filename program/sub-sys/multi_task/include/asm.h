@@ -99,6 +99,7 @@ static inline void switch_to_user(
         "pushl %3 \n"
         "iret"
         : :"m"(data_sel), "m"(user_stack), "m"(code_sel), "m"(entry)
+        : "esp"
     );
 }
 

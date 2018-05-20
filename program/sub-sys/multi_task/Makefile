@@ -1,6 +1,6 @@
 CC = gcc
 LD = ld
-CFLAGS = -g -O0  -m32 -Wall -Werror -ffreestanding -nostdinc
+CFLAGS = -g -O2  -m32 -Wall -Werror -ffreestanding -nostdinc
 LDFLAGS = -m elf_i386
 INCLUDES = -I ./ -I ./include
 BUILD_PATH = _build
@@ -24,6 +24,7 @@ all : dirs
 # kernel除了代码区以外还需要数据区和bss区等
 floopy.img : kernel
 	@objcopy -O binary kernel kernel.img
+	@objdump -S kernel > kernel.sym
 	@echo "将内核写入虚拟磁盘floopy.img..."
 	@dd if=/dev/zero of=floopy.img bs=512 count=2880
 	@dd if=kernel.img of=floopy.img bs=512 conv=notrunc
@@ -50,4 +51,4 @@ dirs:
 
 .PHONY:
 clean:
-	@$(RM) -rf kernel kernel.img floopy.img $(BUILD_PATH)/*
+	@$(RM) -rf kernel kernel.img kernel.sym floopy.img $(BUILD_PATH)/*

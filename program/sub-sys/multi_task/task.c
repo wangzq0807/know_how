@@ -29,6 +29,8 @@ struct X86DTR ldt_ptr_2 = { 0 };
 
 extern void on_timer_intr();
 extern void on_ignore_intr();
+static void task_1();
+static void task_2();
 
 /* 中断门: 中断正在处理时,IF清0,从而屏蔽其他中断 */
 void
@@ -77,35 +79,6 @@ _init_timer()
     outb(low, 0x40);    /* 先写低字节 */
     uint8_t high = BYTE2(11930);
     outb(high, 0x40);   /* 后写高字节 */
-}
-
-void
-on_timer_handler()
-{
-    /* 设置8259A的OCW2,发送结束中断命令 */
-    outb(0x20, 0x20);
-    outb(0x20, 0xA0);
-
-    if (current == 1) {
-        current = 2;
-        __asm__ volatile (
-            "ljmp $0x28, $0 \n"
-        );
-    }
-    else {
-        current = 1;
-        __asm__ volatile (
-            "ljmp $0x18, $0 \n"
-        );
-    }
-}
-
-void
-on_ignore_handler()
-{
-    /* 设置8259A的OCW2,发送结束中断命令 */
-    outb(0x20, 0x20);
-    outb(0x20, 0xA0);
 }
 
 static void
@@ -174,39 +147,6 @@ _setup_ldt_desc(struct X86Desc* desc, uint32_t base, uint32_t limit, uint8_t dpl
     _setup_segment_desc(desc, base, limit, LDT_TYPE, dpl, LDT_PROP);
 }
 
-static void
-task_1()
-{
-    __asm__ volatile (
-        "mov $0x17, %%ax \n"
-        "mov %%ax, %%ds \n"
-        : : : "%eax"
-    );
-    while( 1 ) {
-        print("ABC");
-        // 延时
-        int cnt = 10000;
-        while(cnt--)
-            pause();
-    }
-}
-
-static void
-task_2()
-{
-    __asm__ volatile (
-        "mov $0x17, %%ax \n"
-        "mov %%ax, %%ds \n"
-        : : : "%eax"
-    );
-    while( 1 ) {
-        print("DEF");
-        // 延时
-        int cnt = 10000;
-        while(cnt--)
-            pause();
-    }
-}
 
 static void
 setup_gdt()
@@ -245,24 +185,93 @@ static void
 setup_tss()
 {
     tss1.t_SS_0 = KNL_DS;
-    tss1.t_ESP_0 = (uint32_t)&tss1_kernal_stack[4095];
+    tss1.t_ESP_0 = (uint32_t)&tss1_kernal_stack[1023];
     tss1.t_EIP = (uint32_t)task_1;
     tss1.t_LDT = (uint32_t)0x20;
 
     tss2.t_SS_0 = KNL_DS;
-    tss2.t_ESP_0 = (uint32_t)&tss2_kernal_stack[4095];
+    tss2.t_ESP_0 = (uint32_t)&tss2_kernal_stack[1023];
 
     tss2.t_EFLAGS = 0x200;  // NOTE: 允许中断
     tss2.t_DS = 0x17;
     tss2.t_SS = 0x17;
-    tss2.t_ESP = (uint32_t)&tss2_user_stack[4095];
+    tss2.t_ESP = (uint32_t)&tss2_user_stack[1023];
     tss2.t_CS = 0xF;
     tss2.t_EIP = (uint32_t)task_2;
     tss2.t_LDT = (uint32_t)0x30;
 }
 
+
+static void
+task_1()
+{
+    __asm__ volatile (
+        "mov $0x17, %%ax \n"
+        "mov %%ax, %%ds \n"
+        : : : "%eax"
+    );
+
+    while( 1 ) {
+        // 延时
+        int cnt = 100000;
+        while(cnt--)
+            pause();
+        print("A");
+    }
+}
+
+static void
+task_2()
+{
+    __asm__ volatile (
+        "mov $0x17, %%ax \n"
+        "mov %%ax, %%ds \n"
+        : : : "eax"
+    );
+
+    while( 1 ) {
+        // 延时
+        int cnt = 100000;
+        while(cnt--)
+            pause();
+        print("B");
+    }
+}
+
 void
-start_main()
+on_timer_handler()
+{
+    /* 设置8259A的OCW2,发送结束中断命令 */
+    outb(0x20, 0x20);
+    outb(0x20, 0xA0);
+
+    // NOTE：task1经过跳转到task2，task2再跳转回task1时，会从ljmp的下一条指令开始执行。
+    // NOTE：下面这种切换方式是抢占式的，单核情况下，当两个线程需要同步时，加锁必须是原子操作
+    // NOTE：对与非抢占式的内核，加锁无需原子操作
+    if (current == 1) {
+        current = 2;
+        __asm__ volatile (
+            "ljmp $0x28, $0 \n"
+        );
+    }
+    else {
+        current = 1;
+        __asm__ volatile (
+            "ljmp $0x18, $0 \n"
+        );
+    }
+}
+
+void
+on_ignore_handler()
+{
+    /* 设置8259A的OCW2,发送结束中断命令 */
+    outb(0x20, 0x20);
+    outb(0x20, 0xA0);
+}
+
+void
+start_task()
 {
     cli();
     setup_idt();
@@ -279,5 +288,5 @@ start_main()
 
     sti();
 
-    switch_to_user(0xF, 0x17, &tss1_user_stack[4095], task_1);
+    switch_to_user(0xF, 0x17, &tss1_user_stack[1023], task_1);
 }

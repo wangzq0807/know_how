@@ -1,5 +1,5 @@
-#ifndef __MAIN_H__
-#define __MAIN_H__
+#ifndef __TASK_H__
+#define __TASK_H__
 #include "defs.h"
 /* 内核代码段和数据段 */
 #define KNL_CS      0x8
@@ -54,4 +54,6 @@ struct X86TSS {
     uint16_t    t_IO_map;
 };
 
-#endif // __ARCH_H__
+void start_task();
+
+#endif // __TASK_H__
