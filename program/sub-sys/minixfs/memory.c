@@ -69,53 +69,113 @@ get_free_space()
 
 
 /*************************
- * 对象管理：
+ * 内存切片管理：
  * 按2的次幂为单位来分配内存
  *************************/
 #define MIN_LOG_SIZE    5       // 对象最小为32字节
 #define MAX_LOG_SIZE    10      // 对象最大为1024字节
 #define OBJ_LIST_LEN    (MAX_LOG_SIZE - MIN_LOG_SIZE + 1)
 
+static int
+mfree_n(void *obj, uint32_t log_size, uint32_t num);
+
+struct MemSlice {
+    struct MemSlice    *ms_next;
+};
+
+struct MemSliceHead {
+    uint32_t          ms_dummyLock;
+    struct MemSlice  *ms_free;
+};
+// 为每个2的次幂内存块建一个链表，记录空闲的内存块
+struct MemSliceHead   slice_list[OBJ_LIST_LEN];
+
+void *
+malloc(uint32_t log_size)
+{
+    if (log_size < MIN_LOG_SIZE || log_size > MAX_LOG_SIZE)
+        return NULL;
+    struct MemSliceHead *free_list = &slice_list[log_size - MIN_LOG_SIZE];
+    if (free_list->ms_free == NULL) {
+        void *page = alloc_page();
+        if (page == NULL)
+            return NULL;
+        mfree_n(page, log_size, PAGE_SIZE >> log_size);
+    }
+    struct MemSlice *ret = free_list->ms_free;
+    free_list->ms_free = ret->ms_next;
+    return ret;
+}
+
+static int
+mfree_n(void *obj, uint32_t log_size, uint32_t num)
+{
+    if (log_size < MIN_LOG_SIZE || log_size > MAX_LOG_SIZE)
+        return -1;
+    const uint32_t slice_size = 1 << log_size;
+    uint8_t *byte_ptr = (uint8_t*)obj;
+    struct MemSliceHead *free_list = &slice_list[log_size - MIN_LOG_SIZE];
+    for (int n = 0; n < num; ++n) {
+        ((struct MemSlice *)byte_ptr)->ms_next = free_list->ms_free;
+        free_list->ms_free = ((struct MemSlice *)byte_ptr);
+        byte_ptr += slice_size;
+    }
+    return 0;
+}
+
+int
+mfree(void *obj, uint32_t log_size)
+{
+    return mfree_n(obj, log_size, 1);
+}
+
+/*************************
+ * 内存对象管理
+ * 按对象来分配内存
+ *************************/
+static int
+free_object_n(void *obj, enum EObjectType eObj, uint32_t objsize, uint32_t num);
+
 struct MemObject {
     struct MemObject    *mo_next;
 };
 
 struct MemObjectHead {
-    uint32_t           mo_dummyLock;
-    struct MemObject  *mo_free;
+    uint32_t            mo_dummyLock;
+    struct MemObject    *mo_free;
 };
-// 为每个2的次幂内存块建一个链表，记录空闲的内存块
-struct MemObjectHead   object_list[OBJ_LIST_LEN];
+struct MemObjectHead object_list[EObjectMax];
 
 void *
-alloc_object(uint32_t log_size)
+alloc_object(enum EObjectType eObj, uint32_t objsize)
 {
-    if (log_size < MIN_LOG_SIZE || log_size > MAX_LOG_SIZE)
-        return NULL;
-    struct MemObjectHead *free_list = &object_list[log_size - MIN_LOG_SIZE];
+    struct MemObjectHead *free_list = &object_list[eObj];
     if (free_list->mo_free == NULL) {
         void *page = alloc_page();
         if (page == NULL)
             return NULL;
-        free_n_object(page, log_size, PAGE_SIZE >> log_size);
+        free_object_n(page, eObj, objsize, PAGE_SIZE / objsize);
     }
     struct MemObject *ret = free_list->mo_free;
     free_list->mo_free = ret->mo_next;
     return ret; 
 }
 
-int
-free_n_object(void *obj, uint32_t log_size, uint32_t num)
+static int
+free_object_n(void *obj, enum EObjectType eObj, uint32_t objsize, uint32_t num)
 {
-    if (log_size < MIN_LOG_SIZE || log_size > MAX_LOG_SIZE)
-        return -1;
-    const uint32_t objsize = 1 << log_size;
     uint8_t *byte_ptr = (uint8_t*)obj;
-    struct MemObjectHead *free_list = &object_list[log_size - MIN_LOG_SIZE];
+    struct MemObjectHead *free_list = &object_list[eObj];
     for (int n = 0; n < num; ++n) {
         ((struct MemObject *)byte_ptr)->mo_next = free_list->mo_free;
         free_list->mo_free = ((struct MemObject *)byte_ptr);
         byte_ptr += objsize;
     }
     return 0;
+}
+
+int
+free_object(void *obj, enum EObjectType eObj, uint32_t objsize)
+{
+    return free_object_n(obj, eObj, objsize, 1);
 }

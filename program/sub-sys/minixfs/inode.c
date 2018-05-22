@@ -30,9 +30,9 @@ struct IndexNode inode_load(uint32_t inode)
 
     struct IndexNode root_node;
     memcpy(&root_node, buffer + (inode -1)*sizeof(struct IndexNode), sizeof(struct IndexNode));
-    if (S_ISDIR(root_node.in_file_mode))
+    if (S_ISDIR(root_node.in_inode.in_file_mode))
         return root_node;
-    else if (S_ISREG(root_node.in_file_mode))
+    else if (S_ISREG(root_node.in_inode.in_file_mode))
         return root_node;
 
     return root_node;
