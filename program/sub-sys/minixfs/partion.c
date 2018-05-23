@@ -22,8 +22,8 @@ init_partion(uint16_t dev)
 
     uint16_t bootable = *(uint16_t*)(buffer->bf_data + BOOT_FLAG_POS);
     if (bootable != BOOT_FLAG) {
-        return -1;
         release_block(buffer);
+        return -1;
     }
 
     memcpy((void*)partion_table, buffer->bf_data + PARTION_POS, PARTION_NUM*sizeof(struct PartionEntity));

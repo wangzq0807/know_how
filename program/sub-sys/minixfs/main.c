@@ -15,8 +15,8 @@ init_filesystem(uint16_t dev)
 {
     init_partion(dev);
     init_super_block(dev);
-    init_nodes(dev);
     dump_super_block(dev);
+    init_nodes(dev);
     struct IndexNode *inode = get_inode(dev, 1);
     void *data = get_znode(dev, inode->in_inode.in_zones[0]);
     struct Direction dir;

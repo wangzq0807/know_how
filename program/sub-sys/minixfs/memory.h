@@ -41,6 +41,7 @@ mfree(void *obj, uint32_t log_size);
 // 对象管理
 enum EObjectType {
     ENoneType = 0,
+    EBlockBuffer,
     EIndexNode,
     EObjectMax
 };

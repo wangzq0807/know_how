@@ -29,6 +29,7 @@ init_super_block(uint16_t dev)
     struct BlockBuffer *buffer = get_block(dev, pos);
     memcpy(&super_blk[0], buffer->bf_data, sizeof(super_blk));
     if (super_blk[0].sb_magic != MINIX_V2 ) {
+        print("only minifs v2 is supported\n");
         ret = -1;
     }
     release_block(buffer);

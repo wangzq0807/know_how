@@ -75,6 +75,15 @@ _get_inode_begin(uint16_t dev)
     return superblk_end + super_block->sb_imap_blocks + super_block->sb_zmap_blocks;
 }
 
+static inline uint32_t
+_get_znode_begin(uint16_t dev)
+{
+    struct PartionEntity *entity = get_partion_entity(ROOT_DEVICE);
+    const uint32_t nstart = entity->pe_lba_start / PER_BLOCK_SECTORS;
+    const struct SuperBlock *super_block = get_super_block(dev);
+    return nstart + super_block->sb_first_datazone;
+}
+
 struct IndexNode *
 alloc_inode(uint16_t dev)
 {

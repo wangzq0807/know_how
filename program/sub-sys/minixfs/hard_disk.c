@@ -12,7 +12,7 @@ struct DiskRequest {
 };
 
 struct DiskRequest *disk_queue = NULL;
-struct DiskRequest **disk_queue_tail = &disk_queue;
+struct DiskRequest *disk_queue_tail = NULL;
 #define QUEUE_COUNT (PAGE_SIZE / sizeof(struct DiskRequest))
 #define BYTE_PER_BLK            (512*PER_BLOCK_SECTORS)
 
@@ -53,6 +53,7 @@ init_disk()
         disk_queue[i].dr_next = &disk_queue[i+1];
     }
     disk_queue[QUEUE_COUNT-1].dr_next = &disk_queue[0];
+    disk_queue_tail = disk_queue;
     return 0;
 }
 
@@ -106,10 +107,10 @@ ata_wait_ready()
 int
 ata_read(struct BlockBuffer *buffer)
 {
-    struct DiskRequest *req = *disk_queue_tail;
-    disk_queue_tail = &((*disk_queue_tail)->dr_next);
+    struct DiskRequest *req = disk_queue_tail;
     req->dr_buf = buffer;
     req->dr_cmd = ATA_CMD_READ;
+    disk_queue_tail = disk_queue_tail->dr_next;
 
     if (do_request(disk_queue) == -1)
         return -1;
@@ -122,10 +123,10 @@ ata_read(struct BlockBuffer *buffer)
 int
 ata_write(struct BlockBuffer *buffer)
 {
-    struct DiskRequest *req = *disk_queue_tail;
-    disk_queue_tail = &((*disk_queue_tail)->dr_next);
+    struct DiskRequest *req = disk_queue_tail;
     req->dr_buf = buffer;
     req->dr_cmd = ATA_CMD_WRITE;
+    disk_queue_tail = disk_queue_tail->dr_next;
 
     if (do_request(disk_queue) == -1)
         return -1;
@@ -139,7 +140,7 @@ static int
 do_request(struct DiskRequest *req)
 {
     // TODO : 电梯算法以后再实现
-    if (req == *disk_queue_tail || req->dr_buf == NULL)
+    if (req == disk_queue_tail || req->dr_buf == NULL)
         return -1;
     struct BlockBuffer *buffer = disk_queue->dr_buf;
     const uint32_t lba_addr = buffer->bf_blk * PER_BLOCK_SECTORS;
