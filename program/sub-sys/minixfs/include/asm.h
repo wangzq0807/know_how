@@ -102,4 +102,20 @@ static inline void switch_to_user(
     );
 }
 
+static inline uint32_t atomic_swap(uint32_t *org, uint32_t new_val) {
+    __asm__ volatile (
+        "lock xchg %0, %1 \n"
+        :"+m"(*org), "+r"(new_val)
+    );
+    return new_val;
+}
+
+static inline uint32_t lock(uint32_t *val) {
+    return atomic_swap(val, 1);
+}
+
+static inline void unlock(uint32_t *val) {
+    *val = 0;
+}
+
 #endif // __IO_H__

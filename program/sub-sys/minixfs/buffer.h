@@ -9,7 +9,9 @@
 // 缓冲区状态
 #define BUF_FREE            1       // 空缓冲区，可以被使用
 #define BUF_BUSY            2       // 正在读/写磁盘，不允许被任何进程读或写
-#define BUF_DELAYWRITE      3       // 缓冲区已经被进程释放，但内容还没有写入磁盘
+#define BUF_DIRTY           3       // 缓冲区内容被修改
+#define BUF_DELAYWRITE      4       // 缓冲区已经被进程释放，但内容还没有写入磁盘
+#define BUF_DONE            5       // 
 
 struct BlockBuffer {
     uint8_t *bf_data;
