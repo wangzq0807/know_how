@@ -36,6 +36,4 @@ int ata_read(struct BlockBuffer *buffer);
 // 写磁盘
 int ata_write(struct BlockBuffer *buffer);
 
-void sleep_for(struct BlockBuffer *buffer);
-
 #endif

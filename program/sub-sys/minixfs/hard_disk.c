@@ -11,7 +11,12 @@ struct DiskRequest {
     struct DiskRequest  *dr_next;
 };
 
-struct DiskRequest *disk_queue = NULL;
+struct DistReqHead {
+    uint32_t            dr_lock;
+    struct DiskRequest  *dr_req;
+};
+
+struct DistReqHead disk_queue;
 struct DiskRequest *disk_queue_tail = NULL;
 #define QUEUE_COUNT (PAGE_SIZE / sizeof(struct DiskRequest))
 #define BYTE_PER_BLK            (512*PER_BLOCK_SECTORS)
@@ -40,7 +45,8 @@ struct DiskRequest *disk_queue_tail = NULL;
 #define ATA_STATUS_BUSY     0x80    // 正在准备发送/接口数据
 
 extern void on_disk_intr();
-static int do_request(struct DiskRequest *req);
+static int do_request();
+static void wait_for(struct BlockBuffer *buffer);
 
 int
 init_disk()
@@ -48,12 +54,16 @@ init_disk()
     // 设置中磁盘中断
     set_intr_gate(INTR_DISK, on_disk_intr);
     // 初始化磁盘请求队列
-    disk_queue = alloc_page();
+    struct DiskRequest *req = alloc_page();
     for (int i = 0; i < QUEUE_COUNT; ++i) {
-        disk_queue[i].dr_next = &disk_queue[i+1];
+        req[i].dr_next = &req[i+1];
+        req[i].dr_cmd = 0;
+        req[i].dr_buf = NULL;
     }
-    disk_queue[QUEUE_COUNT-1].dr_next = &disk_queue[0];
-    disk_queue_tail = disk_queue;
+    req[QUEUE_COUNT-1].dr_next = &req[0];
+    disk_queue_tail = req;
+    disk_queue.dr_lock = 0;
+    disk_queue.dr_req = req;
     return 0;
 }
 
@@ -112,10 +122,10 @@ ata_read(struct BlockBuffer *buffer)
     req->dr_cmd = ATA_CMD_READ;
     disk_queue_tail = disk_queue_tail->dr_next;
 
-    if (do_request(disk_queue) == -1)
+    if (do_request() == -1)
         return -1;
 
-    sleep_for(buffer);
+    wait_for(buffer);
 
     return 0;
 }
@@ -128,21 +138,28 @@ ata_write(struct BlockBuffer *buffer)
     req->dr_cmd = ATA_CMD_WRITE;
     disk_queue_tail = disk_queue_tail->dr_next;
 
-    if (do_request(disk_queue) == -1)
+    if (do_request() == -1)
         return -1;
 
-    sleep_for(buffer);
+    // TODO :
+    wait_for(buffer);
 
     return 0;
 }
 
 static int
-do_request(struct DiskRequest *req)
+do_request()
 {
+    // 请求队列头加锁
+    if (lock(&disk_queue.dr_lock) != 0)
+        return 0;
+    struct DiskRequest *req = disk_queue.dr_req;
     // TODO : 电梯算法以后再实现
-    if (req == disk_queue_tail || req->dr_buf == NULL)
+    if (req == disk_queue_tail || req->dr_buf == NULL) {
+        unlock(&disk_queue.dr_lock);
         return -1;
-    struct BlockBuffer *buffer = disk_queue->dr_buf;
+    }
+    struct BlockBuffer *buffer = req->dr_buf;
     const uint32_t lba_addr = buffer->bf_blk * PER_BLOCK_SECTORS;
     const uint8_t cnt = PER_BLOCK_SECTORS;
     const uint8_t cmd = req->dr_cmd;
@@ -153,6 +170,7 @@ do_request(struct DiskRequest *req)
         // begin write
         outsw(buffer->bf_data, BYTE_PER_BLK/2, ATA_REG_DATA);
     }
+    unlock(&disk_queue.dr_lock);
     return 0;
 }
 
@@ -163,22 +181,24 @@ on_disk_handler()
     outb(0x20, 0x20);
     outb(0x20, 0xA0);
 
-    struct BlockBuffer *buffer = disk_queue->dr_buf;
-    if (disk_queue->dr_cmd == ATA_CMD_READ)
+    struct DiskRequest *req = disk_queue.dr_req;
+    struct BlockBuffer *buffer = req->dr_buf;
+    if (req->dr_cmd == ATA_CMD_READ)
         insw(BYTE_PER_BLK/2, ATA_REG_DATA, buffer->bf_data);
     // 释放/解锁缓冲区
     if (buffer->bf_status == BUF_DELAYWRITE)
-        release_block(disk_queue->dr_buf);
+        release_block(req->dr_buf);
     else if (buffer->bf_status == BUF_BUSY)
         buffer->bf_status = BUF_FREE;
         // TODO:唤醒等待当前缓冲区的进程
 
-    disk_queue = disk_queue->dr_next;
-    do_request(disk_queue);
+    disk_queue.dr_req = req->dr_next;
+    unlock(&disk_queue.dr_lock);
+    do_request();
 }
 
-void
-sleep_for(struct BlockBuffer *buffer)
+static void
+wait_for(struct BlockBuffer *buffer)
 {
     while (buffer->bf_status != BUF_FREE) {
         // NOTE : 告诉gcc，内存被修改，必须重新从内存中读取bf_status的值
