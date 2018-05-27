@@ -46,7 +46,6 @@ struct DiskRequest *disk_queue_tail = NULL;
 
 extern void on_disk_intr();
 static int do_request();
-static void wait_for(struct BlockBuffer *buffer);
 
 int
 init_disk()
@@ -125,8 +124,6 @@ ata_read(struct BlockBuffer *buffer)
     if (do_request() == -1)
         return -1;
 
-    wait_for(buffer);
-
     return 0;
 }
 
@@ -140,9 +137,6 @@ ata_write(struct BlockBuffer *buffer)
 
     if (do_request() == -1)
         return -1;
-
-    // TODO :
-    wait_for(buffer);
 
     return 0;
 }
@@ -197,15 +191,4 @@ on_disk_handler()
     disk_queue.dr_req = req->dr_next;
     unlock(&disk_queue.dr_lock);
     do_request();
-}
-
-static void
-wait_for(struct BlockBuffer *buffer)
-{
-    while (buffer->bf_status != BUF_FREE) {
-        // NOTE : 告诉gcc，内存被修改，必须重新从内存中读取bf_status的值
-        // 如果不注明的话，判断条件仅会执行一次，从而形成死循环
-        asm volatile("":::"memory");
-        pause();
-    }
 }

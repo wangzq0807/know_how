@@ -20,6 +20,7 @@ static struct BlockBuffer *hash_map[BUFFER_HASH_LEN];
 
 static struct BlockBuffer *buffer_new();
 error_t remove_from_freelist(struct BlockBuffer *buf);
+static void wait_for(struct BlockBuffer *buffer);
 
 error_t
 init_block_buffer()
@@ -95,8 +96,8 @@ put_hash_entity(struct BlockBuffer *buf)
     return 0;
 }
 
-struct BlockBuffer *
-get_block(uint16_t dev, uint32_t blk)
+static struct BlockBuffer *
+_get_block(uint16_t dev, uint32_t blk)
 {
     // 参考《unix操作系统设计》的五种场景。
     while (1) {
@@ -133,7 +134,6 @@ get_block(uint16_t dev, uint32_t blk)
             new_buffer->bf_blk = blk;
             new_buffer->bf_status = BUF_BUSY;
             put_hash_entity(new_buffer);
-            ata_read(new_buffer);
             return new_buffer;
         }
     }
@@ -141,6 +141,16 @@ get_block(uint16_t dev, uint32_t blk)
     return NULL;
 }
 
+struct BlockBuffer *
+get_block(uint16_t dev, uint32_t blk) 
+{
+    struct BlockBuffer *buf = _get_block(dev, blk);
+    if (buf->bf_status == BUF_BUSY) {
+        ata_read(buf);
+        wait_for(buf);
+    }
+    return buf;
+}
 // error_t put_block(const struct Buffer *buf)
 // {
 //     lock buffer;
@@ -218,4 +228,15 @@ remove_from_freelist(struct BlockBuffer *buf) {
     } while(iter != NULL && iter != free_buffers.bf_buf);
 
     return -1;
+}
+
+static void
+wait_for(struct BlockBuffer *buffer)
+{
+    while (buffer->bf_status != BUF_FREE) {
+        // NOTE : 告诉gcc，内存被修改，必须重新从内存中读取bf_status的值
+        // 如果不注明的话，判断条件仅会执行一次，从而形成死循环
+        asm volatile("":::"memory");
+        pause();
+    }
 }
