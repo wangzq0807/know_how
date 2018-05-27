@@ -50,8 +50,8 @@ init_block_buffer()
     return 0;
 }
 
-error_t
-remove_hash_entity(struct BlockBuffer *buf)
+static error_t
+_remove_hash_entity(struct BlockBuffer *buf)
 {
     struct BlockBuffer *hash_prev = buf->bf_hash_prev;
     struct BlockBuffer *hash_next = buf->bf_hash_next;
@@ -65,8 +65,8 @@ remove_hash_entity(struct BlockBuffer *buf)
     return 0;
 }
 
-struct BlockBuffer *
-get_hash_entity(uint16_t dev, uint32_t blk)
+static struct BlockBuffer *
+_get_hash_entity(uint16_t dev, uint32_t blk)
 {
     uint32_t hash_val = HASH(blk);
     struct BlockBuffer *buf = hash_map[hash_val];
@@ -79,12 +79,12 @@ get_hash_entity(uint16_t dev, uint32_t blk)
     return NULL;
 }
 
-error_t
-put_hash_entity(struct BlockBuffer *buf)
+static error_t
+_put_hash_entity(struct BlockBuffer *buf)
 {
-    struct BlockBuffer *org = get_hash_entity(buf->bf_dev, buf->bf_blk);
+    struct BlockBuffer *org = _get_hash_entity(buf->bf_dev, buf->bf_blk);
     if (org != NULL)
-        remove_hash_entity(org);
+        _remove_hash_entity(org);
 
     uint32_t hash_val = HASH(buf->bf_blk);
     struct BlockBuffer *head = hash_map[hash_val];
@@ -102,7 +102,7 @@ _get_block(uint16_t dev, uint32_t blk)
 {
     // 参考《unix操作系统设计》的五种场景。
     while (1) {
-        struct BlockBuffer *buf = get_hash_entity(dev, blk);
+        struct BlockBuffer *buf = _get_hash_entity(dev, blk);
         if (buf != NULL) {
             if (buf->bf_status == BUF_BUSY) {
                 // 5. 缓存命中，但缓冲区状态为"busy"
@@ -130,11 +130,11 @@ _get_block(uint16_t dev, uint32_t blk)
         }
         else {
             // 2. Hash表中没有找到指定block，新申请一块空的缓冲区
-            remove_hash_entity(new_buffer);
+            _remove_hash_entity(new_buffer);
             new_buffer->bf_dev = dev;
             new_buffer->bf_blk = blk;
             new_buffer->bf_status = BUF_BUSY;
-            put_hash_entity(new_buffer);
+            _put_hash_entity(new_buffer);
             return new_buffer;
         }
     }

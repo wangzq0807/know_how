@@ -3,6 +3,8 @@
 #include "defs.h"
 #include "fs.h"
 
+#define INODE_LOCK        1
+
 struct PyIndexNode {
     uint16_t    in_file_mode;      // 文件类型, 权限等,
     int16_t     in_num_links;      // 链接到这个文件的数量
@@ -10,14 +12,19 @@ struct PyIndexNode {
     int8_t      in_group_id;       // 所在组的id
     uint32_t    in_file_size;      // 文件大小 in types
     time_t      in_atime;          // 访问时间
-    time_t      in_mtime;          // 修改时间
-    time_t      in_ctime;          // 创建时间
+    time_t      in_mtime;          // 文件修改时间
+    time_t      in_ctime;          // Inode修改时间
     uint32_t    in_zones[NUMBER_ZONE];      // 区块
 };
 
 struct IndexNode {
     struct PyIndexNode  in_inode;
-    uint32_t            in_inum;
+    uint16_t            in_dev;
+    uint32_t            in_status;
+    uint16_t            in_inum;
+    uint16_t            in_refs;
+    struct IndexNode    *in_hash_prev;
+    struct IndexNode    *in_hash_next;
 };
 
 struct Direction {
@@ -25,16 +32,22 @@ struct Direction {
     char        name[FILENAME_LEN];
 };
 
-error_t init_nodes(uint16_t dev);
+error_t
+init_nodes(uint16_t dev);
 
-struct IndexNode * alloc_inode(uint16_t dev);
+struct IndexNode *
+alloc_inode(uint16_t dev);
 
-struct IndexNode * get_inode(uint16_t dev, uint32_t idx);
+error_t
+free_inode(struct IndexNode *inode);
 
-error_t free_inode(struct IndexNode *inode);
+struct IndexNode *
+get_inode(uint16_t dev, uint16_t idx);
 
-uint32_t alloc_znode(uint16_t dev);
+uint32_t
+alloc_znode(uint16_t dev);
 
-void * get_znode(uint16_t dev, uint32_t idx);
+void *
+get_znode(uint16_t dev, uint32_t idx);
 
 #endif // __NODES_H__

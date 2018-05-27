@@ -28,8 +28,6 @@ error_t init_block_buffer(void);
 
 struct BlockBuffer *get_block(uint16_t dev, uint32_t blk);
 
-error_t put_block(const struct BlockBuffer *buf);
-
 error_t release_block(struct BlockBuffer *buf);
 
 #endif // __BUFFER_H__
