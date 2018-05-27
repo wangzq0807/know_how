@@ -2,6 +2,7 @@
 #include "hard_disk.h"
 #include "memory.h"
 #include "log.h"
+#include "asm.h"
 
 // configurable
 #define BUFFER_LIST_LEN (PAGE_SIZE / sizeof(struct BlockBuffer))
