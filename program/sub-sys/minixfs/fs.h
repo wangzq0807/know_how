@@ -4,7 +4,7 @@
 #define ROOT_DEVICE    0
 
 #define SECTOR_SIZE             512         // 一个扇区大小
-#define PER_BLOCK_SECTORS       2           // 每块对应的扇区数
+#define BLOCK_LOG_SIZE          10          // 每块的log大小
 #define SUPER_BLOCK_BEGAIN      1           // 超级块在分区中的开始块号
 #define SUPER_BLOCK_SIZE        1           // 一个超级块占的块数
 #define MINIX_V2                0x2478      // minix v2文件系统标识

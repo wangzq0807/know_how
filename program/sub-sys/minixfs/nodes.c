@@ -7,7 +7,8 @@
 #include "string.h"
 #include "partion.h"
 
-#define PER_BLOCK_BYTES     (SECTOR_SIZE*PER_BLOCK_SECTORS)
+#define PER_BLOCK_BYTES     (1 << BLOCK_LOG_SIZE)
+#define PER_BLOCK_SECTORS   (PER_BLOCK_BYTES/SECTOR_SIZE)
 // NOTE : 这里要能整除
 #define PER_BLOCK_INODES    (PER_BLOCK_BYTES/sizeof(struct PyIndexNode))
 // 内存中inode最大数量
@@ -23,9 +24,10 @@ struct IndexNodeHead {
 };
 
 static struct IndexNodeHead free_inodes;
-static struct IndexNode *hash_map[BUFFER_HASH_LEN];
+static struct IndexNode *ihash_map[BUFFER_HASH_LEN];
 
 struct BlockBuffer *inode_map[MAX_IMAP_NUM] = {0};
+// TODO: znode_map数组的大小是不够用的
 struct BlockBuffer *znode_map[MAX_ZMAP_NUM] = {0};
 
 static inline void
@@ -92,7 +94,7 @@ _get_inode_begin(uint16_t dev)
 static inline uint32_t
 _get_znode_begin(uint16_t dev)
 {
-    struct PartionEntity *entity = get_partion_entity(ROOT_DEVICE);
+    struct PartionEntity *entity = get_partion_entity(dev);
     const uint32_t nstart = entity->pe_lba_start / PER_BLOCK_SECTORS;
     const struct SuperBlock *super_block = get_super_block(dev);
     return nstart + super_block->sb_first_datazone;
@@ -117,7 +119,7 @@ static struct IndexNode *
 _get_hash_entity(uint16_t dev, uint32_t idx)
 {
     uint32_t hash_val = HASH(idx);
-    struct IndexNode *inode = hash_map[hash_val];
+    struct IndexNode *inode = ihash_map[hash_val];
     while (inode != NULL) {
         if (inode->in_dev == dev &&
             inode->in_inum == idx)
@@ -135,12 +137,12 @@ _put_hash_entity(struct IndexNode *inode)
         _remove_hash_entity(org);
 
     uint32_t hash_val = HASH(inode->in_inum);
-    struct IndexNode *head = hash_map[hash_val];
+    struct IndexNode *head = ihash_map[hash_val];
     inode->in_hash_next = head;
     inode->in_hash_prev = NULL;
     if (head != NULL)
         head->in_hash_prev = inode;
-    hash_map[hash_val] = inode;
+    ihash_map[hash_val] = inode;
 
     return 0;
 }
@@ -244,7 +246,7 @@ release_inode(struct IndexNode *inode)
 }
 
 uint32_t
-alloc_znode(uint16_t dev)
+alloc_zone(uint16_t dev)
 {
     const struct SuperBlock *super_block = get_super_block(dev);
     const uint32_t zcnt = super_block->sb_zmap_blocks;
@@ -252,11 +254,20 @@ alloc_znode(uint16_t dev)
     return znode;
 }
 
-void *
-get_znode(uint16_t dev, uint32_t idx)
+uint32_t
+get_zone(struct IndexNode *inode, uint32_t bytes_offset, uint32_t *offset_in_blk)
 {
-    struct PartionEntity *entity = get_partion_entity(ROOT_DEVICE);
+    // TODO : 这里暂时假设zone和block大小相同
+    if (bytes_offset < PER_BLOCK_BYTES) {
+        if (offset_in_blk != NULL)
+            *offset_in_blk = bytes_offset;
+        return inode->in_inode.in_zones[0];
+    }
+    struct PartionEntity *entity = get_partion_entity(inode->in_dev);
     const uint32_t nstart = entity->pe_lba_start / PER_BLOCK_SECTORS;
-    struct BlockBuffer *buffer = get_block(dev, nstart + idx);
-    return buffer->bf_data;
+    const uint32_t block_num = (bytes_offset - 1) >> BLOCK_LOG_SIZE + 1;
+    if (offset_in_blk)
+        offset_in_blk = bytes_offset & (PER_BLOCK_SECTORS - 1);
+
+    return block_num;
 }

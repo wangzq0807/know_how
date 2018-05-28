@@ -49,9 +49,9 @@ void
 release_inode(struct IndexNode *inode);
 
 uint32_t
-alloc_znode(uint16_t dev);
+alloc_zone(uint16_t dev);
 
-void *
-get_znode(uint16_t dev, uint32_t idx);
+uint32_t
+get_znode(struct IndexNode *inode, uint32_t bytes_offset, uint32_t *offset_in_blk);
 
 #endif // __NODES_H__

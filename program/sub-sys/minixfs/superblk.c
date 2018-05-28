@@ -10,11 +10,13 @@
 
 static struct SuperBlock super_blk[4];
 
+#define PER_BLOCK_SECTORS   ((1<<BLOCK_LOG_SIZE) / SECTOR_SIZE);
+
 // NOTE : dev unused
 uint32_t
 get_super_block_begin(uint16_t dev)
 {
-    struct PartionEntity *entity = get_partion_entity(ROOT_DEVICE);
+    struct PartionEntity *entity = get_partion_entity(dev);
     const uint32_t nstart = entity->pe_lba_start / PER_BLOCK_SECTORS;
     const uint32_t superblk_pos = nstart + SUPER_BLOCK_BEGAIN;
     return superblk_pos;

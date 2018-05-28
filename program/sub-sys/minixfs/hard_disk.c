@@ -19,7 +19,8 @@ struct DistReqHead {
 struct DistReqHead disk_queue;
 struct DiskRequest *disk_queue_tail = NULL;
 #define QUEUE_COUNT (PAGE_SIZE / sizeof(struct DiskRequest))
-#define BYTE_PER_BLK            (512*PER_BLOCK_SECTORS)
+#define BYTE_PER_BLK            (1 << BLOCK_LOG_SIZE)
+#define PER_BLOCK_SECTORS       (BYTE_PER_BLK / SECTOR_SIZE)
 
 // ATA 寄存器(Primary Bus, Master Drives)
 #define ATA_REG_DATA        0x1F0   // 数据端口
