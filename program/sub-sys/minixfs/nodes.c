@@ -16,6 +16,13 @@
 #define BUFFER_HASH_LEN 100
 #define HASH_MAGIC   (BUFFER_HASH_LEN * 1000 / 618)
 #define HASH(val)    ((val)*HASH_MAGIC % BUFFER_HASH_LEN)
+
+struct IndexNodeHead {
+    uint32_t            in_lock;
+    struct IndexNode    *in_free;
+};
+
+static struct IndexNodeHead free_inodes;
 static struct IndexNode *hash_map[BUFFER_HASH_LEN];
 
 struct BlockBuffer *inode_map[MAX_IMAP_NUM] = {0};
@@ -51,6 +58,8 @@ init_nodes(uint16_t dev)
     for (int i = 0; i < zcnt && i < MAX_ZMAP_NUM; ++i) {
         znode_map[i] = get_block(dev, znode_pos + i);
     }
+    free_inodes.in_free = NULL;
+    free_inodes.in_lock = 0;
     return 0;
 }
 
@@ -140,7 +149,13 @@ struct IndexNode *
 alloc_inode(uint16_t dev)
 {
     // 申请一个新的IndexNode
-    struct IndexNode *inode = (struct IndexNode *)alloc_object(EIndexNode, sizeof(struct IndexNode));
+    struct IndexNode *inode = NULL;
+    if (free_inodes.in_free == NULL)
+        inode = (struct IndexNode *)alloc_object(EIndexNode, sizeof(struct IndexNode));
+    else {
+        inode = free_inodes.in_free;
+        free_inodes.in_free = inode->in_next;
+    }
     // 为新inode分配一个bit位
     const struct SuperBlock *super_block = get_super_block(dev);
     const uint32_t icnt = super_block->sb_imap_blocks;
@@ -153,6 +168,14 @@ alloc_inode(uint16_t dev)
     _put_hash_entity(inode);
     return inode;
 }
+
+error_t
+free_inode(struct IndexNode *inode)
+{
+
+    return 0;
+}
+
 
 struct IndexNode *
 get_inode(uint16_t dev, uint16_t inode_index)
@@ -170,7 +193,12 @@ get_inode(uint16_t dev, uint16_t inode_index)
         }
         else {
             // 申请一个新的IndexNode
-            inode = (struct IndexNode *)alloc_object(EIndexNode, sizeof(struct IndexNode));
+            if (free_inodes.in_free == NULL)
+                inode = (struct IndexNode *)alloc_object(EIndexNode, sizeof(struct IndexNode));
+            else {
+                inode = free_inodes.in_free;
+                free_inodes.in_free = inode->in_next;
+            }
             // 读磁盘上的inode
             const uint32_t inode_begin = _get_inode_begin(dev);
             const uint32_t block_num = (inode_index - 1) / PER_BLOCK_INODES + inode_begin;
@@ -179,11 +207,11 @@ get_inode(uint16_t dev, uint16_t inode_index)
             struct BlockBuffer *buffer = get_block(dev, block_num);
             // 将inode的内容拷贝到IndexNode
             uint8_t *ptr = buffer->bf_data + offset * sizeof(struct PyIndexNode);
-            memcpy(inode, ptr, sizeof(struct PyIndexNode));
+            memcpy(&inode->in_inode, ptr, sizeof(struct PyIndexNode));
             release_block(buffer);
             // 初始化
             inode->in_dev = dev;
-            inode->in_status = 0;
+            inode->in_status = INODE_LOCK;
             inode->in_inum = inode_index;
             inode->in_refs = 1;
             _put_hash_entity(inode);
@@ -192,11 +220,27 @@ get_inode(uint16_t dev, uint16_t inode_index)
     return (struct IndexNode *)inode;
 }
 
-error_t
-free_inode(struct IndexNode *inode)
+void
+release_inode(struct IndexNode *inode)
 {
-    
-    return 0;
+    inode->in_refs -= 1;
+    if (inode->in_refs == 0) {
+        // 将inode放入空闲列表
+        inode->in_next = free_inodes.in_free;
+        free_inodes.in_free = inode;
+        _remove_hash_entity(inode);
+        // 读磁盘上的inode缓冲区
+        const uint32_t inode_begin = _get_inode_begin(inode->in_dev);
+        const uint32_t block_num = (inode->in_inum - 1) / PER_BLOCK_INODES + inode_begin;
+        const uint32_t offset = (inode->in_inum - 1) % PER_BLOCK_INODES;
+
+        struct BlockBuffer *buffer = get_block(inode->in_dev, block_num);
+        // 将IndexNode的内容拷贝到inode缓冲区
+        uint8_t *ptr = buffer->bf_data + offset * sizeof(struct PyIndexNode);
+        memcpy(ptr, &inode->in_inode, sizeof(struct PyIndexNode));
+        release_block(buffer);
+    }
+    inode->in_status = 0;
 }
 
 uint32_t

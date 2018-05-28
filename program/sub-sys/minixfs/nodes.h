@@ -18,12 +18,13 @@ struct PyIndexNode {
 };
 
 struct IndexNode {
-    struct PyIndexNode  in_inode;
-    uint16_t            in_dev;
-    uint32_t            in_status;
-    uint16_t            in_inum;
-    uint16_t            in_refs;
-    struct IndexNode    *in_hash_prev;
+    struct PyIndexNode  in_inode;       // 磁盘上inode内容
+    uint16_t            in_dev;         // 设备号
+    uint32_t            in_status;      // 状态
+    uint16_t            in_inum;        // inode编号
+    uint16_t            in_refs;        // 引用计数
+    struct IndexNode    *in_next;       // 下一个空闲inode
+    struct IndexNode    *in_hash_prev;  // hash表
     struct IndexNode    *in_hash_next;
 };
 
@@ -43,6 +44,9 @@ free_inode(struct IndexNode *inode);
 
 struct IndexNode *
 get_inode(uint16_t dev, uint16_t idx);
+
+void
+release_inode(struct IndexNode *inode);
 
 uint32_t
 alloc_znode(uint16_t dev);
