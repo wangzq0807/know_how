@@ -279,7 +279,6 @@ get_zone(struct IndexNode *inode, uint32_t bytes_offset, uint32_t *offset_in_blk
     else if (zone_num < (DIRECT_ZONE + INDIRECT_ZONES)) {
         const uint32_t in_blk = inode->in_inode.in_zones[DIRECT_ZONE];
         const uint32_t in_num = zone_num - DIRECT_ZONE;
-        printx(in_blk); printx(in_num);printx(*offset_in_blk);
         struct BlockBuffer *buf = get_block(inode->in_dev, nstart+in_blk);
         block_num = ((uint32_t *)buf->bf_data)[in_num];
         release_block(buf);
@@ -306,7 +305,7 @@ get_zone(struct IndexNode *inode, uint32_t bytes_offset, uint32_t *offset_in_blk
         uint32_t tr_num = zone_num - DIRECT_ZONE - INDIRECT_ZONES - DINDIRECT_ZONES;
 
         uint32_t tr_offset = tr_num / DINDIRECT_ZONES;
-        uint32_t tr_inoffset = tr_num % DINDIRECT_ZONES;
+        uint32_t tr_inoffset = (tr_num % DINDIRECT_ZONES)/INDIRECT_ZONES;
         uint32_t tr_dboffset = tr_num % INDIRECT_ZONES;
 
         struct BlockBuffer *buf = get_block(inode->in_dev, nstart+tr_blk);
@@ -324,3 +323,4 @@ get_zone(struct IndexNode *inode, uint32_t bytes_offset, uint32_t *offset_in_blk
 
     return nstart + block_num;
 }
+
