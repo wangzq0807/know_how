@@ -52,6 +52,6 @@ uint32_t
 alloc_zone(uint16_t dev);
 
 uint32_t
-get_znode(struct IndexNode *inode, uint32_t bytes_offset, uint32_t *offset_in_blk);
+get_zone(struct IndexNode *inode, uint32_t bytes_offset, uint32_t *offset_in_blk);
 
 #endif // __NODES_H__
