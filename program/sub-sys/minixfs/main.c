@@ -2,7 +2,7 @@
 #include "hard_disk.h"
 #include "partion.h"
 #include "superblk.h"
-#include "nodes.h"
+#include "inodes.h"
 #include "arch/arch.h"
 #include "log.h"
 #include "string.h"
