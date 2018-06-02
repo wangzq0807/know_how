@@ -34,7 +34,7 @@ struct Direction {
 };
 
 error_t
-init_nodes(uint16_t dev);
+init_inodes(uint16_t dev);
 
 struct IndexNode *
 alloc_inode(uint16_t dev);
@@ -48,10 +48,18 @@ get_inode(uint16_t dev, uint16_t idx);
 void
 release_inode(struct IndexNode *inode);
 
-uint32_t
-alloc_zone(uint16_t dev);
+static inline void
+_set_bit(uint8_t *byte, uint32_t num)
+{
+    const uint32_t val = 1 << (num & 7);
+    *byte |= val;
+}
 
-uint32_t
-get_zone(struct IndexNode *inode, uint32_t bytes_offset, uint32_t *offset_in_blk);
+static inline uint32_t
+_get_bit(uint8_t *byte, uint32_t num)
+{
+    const uint32_t val = 1 << (num & 7);
+    return (*byte) & val;
+}
 
 #endif // __NODES_H__

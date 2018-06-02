@@ -10,6 +10,7 @@
 #include "memory.h"
 #include "fs.h"
 #include "sys/stat.h"
+#include "zones.h"
 
 static void
 init_filesystem(uint16_t dev)
@@ -17,7 +18,7 @@ init_filesystem(uint16_t dev)
     init_partion(dev);
     init_super_block(dev);
     dump_super_block(dev);
-    init_nodes(dev);
+    init_inodes(dev);
 
     struct IndexNode *inode = get_inode(dev, 1);
     uint32_t blk = 0;
