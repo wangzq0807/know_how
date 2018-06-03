@@ -73,6 +73,11 @@ _get_inode_begin(uint16_t dev)
 static error_t
 _remove_hash_entity(struct IndexNode *inode)
 {
+    uint32_t hash_val = HASH(inode->in_inum);
+    struct IndexNode *head = ihash_map[hash_val];
+    if (head == inode)
+        ihash_map[hash_val] = inode->in_hash_next;
+
     struct IndexNode *hash_prev = inode->in_hash_prev;
     struct IndexNode *hash_next = inode->in_hash_next;
     if (hash_prev != NULL)

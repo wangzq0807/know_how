@@ -21,6 +21,7 @@ init_filesystem(uint16_t dev)
     dump_super_block(dev);
     init_inodes(dev);
     init_zones(dev);
+    name_to_inode("/66M");
 
     struct IndexNode *inode = get_inode(dev, 1);
     uint32_t blk = 0;

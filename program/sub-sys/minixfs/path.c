@@ -58,7 +58,6 @@ name_to_inode(const char *name)
     while (*name) {
         const char *next = strstr(name, "/");
         const int len = next - name;
-        printx(len);
 
         struct IndexNode *inode = get_inode(work_dev, work_inode);
         work_inode = _search_file(inode, name, len);

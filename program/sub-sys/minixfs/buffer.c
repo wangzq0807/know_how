@@ -53,6 +53,11 @@ init_block_buffer()
 static error_t
 _remove_hash_entity(struct BlockBuffer *buf)
 {
+    uint32_t hash_val = HASH(buf->bf_blk);
+    struct BlockBuffer *head = hash_map[hash_val];
+    if (head == buf)
+        hash_map[hash_val] = buf->bf_hash_next;
+
     struct BlockBuffer *hash_prev = buf->bf_hash_prev;
     struct BlockBuffer *hash_next = buf->bf_hash_next;
     if (hash_prev != NULL)
