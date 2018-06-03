@@ -16,4 +16,6 @@
 #define NUMBER_ZONE             10          // 总的索引区块数
 #define FILENAME_LEN            30          // 文件名长度
 
+#define ROOT_INODE              1           // 根节点
+
 #endif // __FS_H__

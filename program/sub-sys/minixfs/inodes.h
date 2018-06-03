@@ -28,11 +28,6 @@ struct IndexNode {
     struct IndexNode    *in_hash_next;
 };
 
-struct Direction {
-    uint16_t    inode;
-    char        name[FILENAME_LEN];
-};
-
 error_t
 init_inodes(uint16_t dev);
 

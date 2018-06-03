@@ -11,6 +11,7 @@
 #include "fs.h"
 #include "sys/stat.h"
 #include "zones.h"
+#include "path.h"
 
 static void
 init_filesystem(uint16_t dev)
@@ -19,6 +20,7 @@ init_filesystem(uint16_t dev)
     init_super_block(dev);
     dump_super_block(dev);
     init_inodes(dev);
+    init_zones(dev);
 
     struct IndexNode *inode = get_inode(dev, 1);
     uint32_t blk = 0;
@@ -32,10 +34,10 @@ init_filesystem(uint16_t dev)
     uint32_t file_seek = 0;
     while (file_seek < inode->in_inode.in_file_size) {
         memcpy(&dir, data+file_seek, sizeof(struct Direction));
-        print(dir.name);
+        print(dir.dr_name);
         print(" ");
 
-        struct IndexNode *one_inode = get_inode(dev, dir.inode);
+        struct IndexNode *one_inode = get_inode(dev, dir.dr_inode);
         if (S_ISREG(one_inode->in_inode.in_file_mode)) {
             uint32_t bytes = one_inode->in_inode.in_file_size - 3;
             blk = get_zone(one_inode, bytes, &offset);
