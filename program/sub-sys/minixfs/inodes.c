@@ -162,6 +162,7 @@ get_inode(uint16_t dev, uint16_t inode_index)
         inode = _get_hash_entity(dev, inode_index);
         if (inode != NULL) {
             if (inode->in_status == INODE_LOCK) {
+                inode = NULL;
                 // TODO : sleep for inode
                 continue;
             }
