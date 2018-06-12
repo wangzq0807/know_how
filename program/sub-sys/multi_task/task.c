@@ -40,32 +40,29 @@ uint32_t conf_res1 = 1;
 uint32_t conf_res2 = 1;
 
 /* 中断门: 中断正在处理时,IF清0,从而屏蔽其他中断 */
-void
-set_intr_gate(int32_t num, void *func_addr)
+static inline void
+set_intr_gate(int32_t num, void *func_addr, int32_t dpl)
 {
     const uint32_t selector = KNL_CS;
     const uint32_t offset = (uint32_t)func_addr;
     idt_table[num].d_low = (selector << 16) | (offset & 0xFFFF);
-    idt_table[num].d_high = (offset & 0xFFFF0000) | GATE_INTR_FLAG;
+    idt_table[num].d_high = (offset & 0xFFFF0000) | GATE_INTR_FLAG | (dpl<<13);
 }
 
 /* 陷阱门: 中断正在处理时,IF不清零,可响应更高优先级的中断 */
-void
-set_trap_gate(int32_t num, void *func_addr)
+static inline void
+set_trap_gate(int32_t num, void *func_addr, int32_t dpl)
 {
     const uint32_t selector = KNL_CS;
     const uint32_t offset = (uint32_t)func_addr;
     idt_table[num].d_low = (selector << 16) | (offset & 0xFFFF);
-    idt_table[num].d_high = (offset & 0xFFFF0000) | GATE_TRAP_FLAG;
+    idt_table[num].d_high = (offset & 0xFFFF0000) | GATE_TRAP_FLAG | (dpl<<13);
 }
 
 void
 set_sys_call()
 {
-    const uint32_t selector = KNL_CS;
-    const uint32_t offset = (uint32_t)on_syscall_intr;
-    idt_table[0x80].d_low = (selector << 16) | (offset & 0xFFFF);
-    idt_table[0x80].d_high = (offset & 0xFFFF0000) | 0xef00;
+    set_trap_gate(0x80, on_syscall_intr, 3);
 }
 
 static void
@@ -102,10 +99,10 @@ setup_idt()
 {
     /* 设置默认中断 */
     for (int32_t i = 0; i < 256; ++i) {
-        set_intr_gate(i, &on_ignore_intr);
+        set_intr_gate(i, &on_ignore_intr, 0);
     }
     /* 设置时钟中断 */
-    set_intr_gate(INTR_TIMER, &on_timer_intr);
+    set_intr_gate(INTR_TIMER, &on_timer_intr, 0);
     /* 系统调用 */
     set_sys_call();
     /* 重新加载idt */

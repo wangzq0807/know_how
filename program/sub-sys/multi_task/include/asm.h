@@ -19,7 +19,7 @@ static inline uint8_t inb(uint16_t port) {
     return ret;
 }
 
-static inline void outsw(uint32_t buffer, uint32_t cnt, uint16_t port) {
+static inline void outsw(void *buffer, uint32_t cnt, uint16_t port) {
     __asm__ volatile (
         "cld \n"
         "rep outsw \n"
@@ -27,7 +27,7 @@ static inline void outsw(uint32_t buffer, uint32_t cnt, uint16_t port) {
     );
 }
 
-static inline void insw(uint32_t cnt, uint16_t port, uint32_t buffer) {
+static inline void insw(uint32_t cnt, uint16_t port, void *buffer) {
     __asm__ volatile (
         "cld \n"
         "rep insw \n"
@@ -98,7 +98,8 @@ static inline void switch_to_user(
         "pushl %2 \n"
         "pushl %3 \n"
         "iret"
-        : :"m"(data_sel), "m"(user_stack), "m"(code_sel), "m"(entry)
+        // 编译器太傻了，如果下面使用内存变量的话，会使用esp来寻址，而esp自身会被push指令所修改
+        : :"r"(data_sel), "r"(user_stack), "r"(code_sel), "r"(entry)
         : "esp"
     );
 }
