@@ -12,8 +12,12 @@ typedef long long       int64_t;
 
 typedef uint32_t        size_t;
 
-typedef long            time_t;
-typedef int             error_t;
+typedef int32_t         time_t;
+typedef int32_t         error_t;
+typedef uint16_t        dev_t;
+typedef int32_t         pid_t;
+typedef int32_t         gid_t;
+typedef int32_t         uid_t;
 #define NO_ERROR    (0)
 
 #define BYTE1(val) ((val) & 0xFF)
