@@ -75,12 +75,12 @@ static inline void lldt(uint32_t ldt) {
     );
 }
 
-static inline void ljmp(uint32_t cs, uint32_t offset) {
+static inline void enable_paging() {
     __asm__ volatile (
-        "pushl %0 \n"
-        "pushl %1 \n"
-        "retf"
-        : :"r"(cs), "r"(offset)
+        "movl %%cr0, %%eax \n"
+        "orl %%eax, 0x80000000 \n"
+        "movl %%eax, %%cr0 \n"
+        :::"eax"
     );
 }
 
@@ -107,7 +107,7 @@ static inline void switch_to_user(
         "pushl %2 \n"
         "pushl %3 \n"
         "iret"
-        // 编译器太傻了，如果下面使用内存变量的话，会使用esp来寻址，而esp自身会被push指令所修改
+        // NOTE:编译器太傻了，如果下面使用内存变量的话，会使用esp来寻址，而esp自身会被push指令所修改
         : :"r"(data_sel), "r"(user_stack), "r"(code_sel), "r"(entry)
         : "esp"
     );

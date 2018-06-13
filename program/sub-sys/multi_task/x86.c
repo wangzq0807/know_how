@@ -1,10 +1,10 @@
 #include "x86.h"
 #include "asm.h"
 
-/* 全局描述符 */
+/* 全局描述符表 */
 struct X86Desc gdt_table[7] = { 0 };
 struct X86DTR gdt_ptr = { 0 };
-/* 中断描述符 */
+/* 中断描述符表 */
 struct X86Desc idt_table[256] = { 0 };
 struct X86DTR idt_ptr = { 0 };
 /* 当前tss */
