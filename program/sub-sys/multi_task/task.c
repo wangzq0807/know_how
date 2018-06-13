@@ -2,18 +2,12 @@
 #include "log.h"
 #include "asm.h"
 #include "lock.h"
-
+#include "memory.h"
 
 /* 任务一 */
-struct X86TSS tss1 = { 0 };
-uint8_t tss1_kernal_stack[1024] = { 0 };
-uint8_t tss1_user_stack[1024] = { 0 };
-struct X86Desc tss1_ldt[3] = { 0 };
+struct Task task1;
 /* 任务二 */
-struct X86TSS tss2 = { 0 };
-uint8_t tss2_kernal_stack[1024] = { 0 };
-uint8_t tss2_user_stack[1024] = { 0 };
-struct X86Desc tss2_ldt[3] = { 0 };
+struct Task task2;
 
 static void task_1();
 static void task_2();
@@ -55,36 +49,6 @@ _init_timer()
     outb(high, 0x40);   /* 后写高字节 */
 }
 
-static void
-setup_ldt()
-{
-    const uint8_t USR_DPL = 0xF;
-    setup_code_desc(&tss1_ldt[1], 0, 0xFFFFF, USR_DPL);
-    setup_data_desc(&tss1_ldt[2], 0, 0xFFFFF, USR_DPL);
-    setup_code_desc(&tss2_ldt[1], 0, 0xFFFFF, USR_DPL);
-    setup_data_desc(&tss2_ldt[2], 0, 0xFFFFF, USR_DPL);
-}
-
-static void
-setup_tss()
-{
-    tss1.t_SS_0 = KNL_DS;
-    tss1.t_ESP_0 = (uint32_t)&tss1_kernal_stack[1023];
-    tss1.t_EIP = (uint32_t)task_1;
-    tss1.t_LDT = (uint32_t)0x20;
-
-    tss2.t_SS_0 = KNL_DS;
-    tss2.t_ESP_0 = (uint32_t)&tss2_kernal_stack[1023];
-
-    tss2.t_EFLAGS = 0x200;  // NOTE: 允许中断
-    tss2.t_DS = 0x17;
-    tss2.t_SS = 0x17;
-    tss2.t_ESP = (uint32_t)&tss2_user_stack[1023];
-    tss2.t_CS = 0xF;
-    tss2.t_EIP = (uint32_t)task_2;
-    tss2.t_LDT = (uint32_t)0x30;
-}
-
 void
 switch_task()
 {
@@ -93,11 +57,11 @@ switch_task()
     // NOTE：对于非抢占式的内核，加锁无需原子操作
     if (current == 1) {
         current = 2;
-        switch_tss(&tss2, tss2_ldt);
+        switch_tss(&task2.ts_tss, task2.ts_ldt);
     }
     else {
         current = 1;
-        switch_tss(&tss1, tss1_ldt);
+        switch_tss(&task1.ts_tss, task1.ts_ldt);
     }
 }
 
@@ -167,6 +131,38 @@ task_2()
     }
 }
 
+static void
+setup_first_task()
+{
+    const uint8_t USR_DPL = 0xF;
+    setup_code_desc(&task1.ts_ldt[1], 0, 0xFFFFF, USR_DPL);
+    setup_data_desc(&task1.ts_ldt[2], 0, 0xFFFFF, USR_DPL);
+    task1.ts_user_stack = alloc_page();
+    task1.ts_kern_stack = alloc_page();
+    task1.ts_tss.t_SS_0 = KNL_DS;
+    task1.ts_tss.t_ESP_0 = (uint32_t)&task1.ts_kern_stack[PAGE_SIZE-1];
+    // task1.ts_tss.t_LDT = KNL_LDT;
+}
+
+static void
+setup_second_task()
+{
+    const uint8_t USR_DPL = 0xF;
+    setup_code_desc(&task2.ts_ldt[1], 0, 0xFFFFF, USR_DPL);
+    setup_data_desc(&task2.ts_ldt[2], 0, 0xFFFFF, USR_DPL);
+    uint8_t *ks_page = alloc_page();
+    uint8_t *us_page = alloc_page();
+
+    task2.ts_tss.t_SS_0 = KNL_DS;
+    task2.ts_tss.t_ESP_0 = (uint32_t)&ks_page[PAGE_SIZE-1];
+    task2.ts_tss.t_EFLAGS = 0x200;  // NOTE: 允许中断
+    task2.ts_tss.t_DS = USR_DS;
+    task2.ts_tss.t_SS = USR_DS;
+    task2.ts_tss.t_ESP = (uint32_t)&us_page[PAGE_SIZE-1];
+    task2.ts_tss.t_CS = USR_CS;
+    task2.ts_tss.t_EIP = (uint32_t)task_2;
+    // task2.ts_tss.t_LDT = KNL_LDT;
+}
 
 void
 start_task()
@@ -176,12 +172,16 @@ start_task()
     cli();
     setup_idt();
     setup_gdt();
-    setup_ldt();
-    setup_tss();
 
     _init_8259A();
     _init_timer();
 
+    setup_first_task();
+    setup_second_task();
+
     /* 开始第一个进程 */
-    start_first_task(&tss1, tss1_ldt, &tss1_user_stack[1023], task_1);
+    start_first_task(&task1.ts_tss,
+                    task1.ts_ldt,
+                    &task1.ts_user_stack[PAGE_SIZE-1],
+                    task_1);
 }

@@ -8,6 +8,7 @@ struct Task {
     gid_t           ts_gid;
     uid_t           ts_uid;
     uint32_t        ts_state;
+    uint32_t        ts_lock;
     time_t          ts_time;
     error_t         ts_exit;
 

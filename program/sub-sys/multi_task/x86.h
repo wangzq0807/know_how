@@ -6,6 +6,15 @@
 /* 内核代码段和数据段 */
 #define KNL_CS      0x8
 #define KNL_DS      0x10
+/* 只使用两个tss段，通过不断反转两个tss实现任务切换 */
+#define KNL_TSS1    0x18
+#define KNL_TSS2    0x20
+/* 所有任务使用相同的LDT描述符 */
+#define KNL_LDT     0x28
+
+/* 用户态代码段和数据段 */
+#define USR_CS      0xF
+#define USR_DS      0x17
 /* 门描述符标志 */
 #define GATE_INTR_FLAG  0x8E00
 #define GATE_TRAP_FLAG  0x8F00

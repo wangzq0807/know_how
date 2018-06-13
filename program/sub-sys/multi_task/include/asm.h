@@ -75,6 +75,15 @@ static inline void lldt(uint32_t ldt) {
     );
 }
 
+static inline void ljmp(uint32_t cs, uint32_t offset) {
+    __asm__ volatile (
+        "pushl %0 \n"
+        "pushl %1 \n"
+        "retf"
+        : :"r"(cs), "r"(offset)
+    );
+}
+
 static inline void reload_sregs(uint16_t cs, uint16_t ds) {
     __asm__ volatile (
         "pushl %%eax \n"

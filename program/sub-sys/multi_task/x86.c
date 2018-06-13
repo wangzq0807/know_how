@@ -8,12 +8,15 @@ struct X86DTR gdt_ptr = { 0 };
 struct X86Desc idt_table[256] = { 0 };
 struct X86DTR idt_ptr = { 0 };
 /* 当前tss */
-uint32_t current_tss = 0;
+uint32_t current_tss = 1;
 
 // 任务状态段DPL : 存在，特权级0，系统段
-#define TSS_DPL 0x8
+#define TSS_DPL     0x8
 // LDT段DPL : 存在，特权级0，系统段
-#define LDT_DPL 0x8
+#define LDT_DPL     0x8
+// 限长
+#define LDT_LIMIT   (3*8)
+#define TSS_LIMIT   103
 
 extern void on_timer_intr();
 extern void on_ignore_intr();
@@ -46,8 +49,8 @@ void
 setup_gdt()
 {
     const uint8_t KNL_DPL = 0x9;        // 内核段DPL : 存在，特权级0，数据段/代码段
-    setup_code_desc(&gdt_table[1], 0, 0xFFFFF, KNL_DPL);
-    setup_data_desc(&gdt_table[2], 0, 0xFFFFF, KNL_DPL);
+    setup_code_desc(&gdt_table[KNL_CS>>3], 0, 0xFFFFF, KNL_DPL);
+    setup_data_desc(&gdt_table[KNL_DS>>3], 0, 0xFFFFF, KNL_DPL);
 
     /* 重新加载gdt */
     const uint32_t base_addr = (uint32_t)(&gdt_table);
@@ -78,18 +81,19 @@ setup_idt()
 void
 switch_tss(struct X86TSS *tss, struct X86Desc *ldt)
 {
-    if (current_tss == 0) {
-        setup_tss_desc(&gdt_table[5], (uint32_t)tss, 103, TSS_DPL);
-        setup_ldt_desc(&gdt_table[6], (uint32_t)ldt, 24, LDT_DPL);
-        current_tss = 1;
+    tss->t_LDT = KNL_LDT;
+    if (current_tss == 1) {
+        setup_tss_desc(&gdt_table[KNL_TSS2>>3], (uint32_t)tss, TSS_LIMIT, TSS_DPL);
+        current_tss = 2;
+
+        // TO:我想用 KNL_TSS2 替代0x20，但不知道该怎么做
         __asm__ volatile (
-            "ljmp $0x28, $0 \n"
+            "ljmp $0x20, $0 \n"
         );
     }
     else {
-        setup_tss_desc(&gdt_table[3], (uint32_t)tss, 103, TSS_DPL);
-        setup_ldt_desc(&gdt_table[4], (uint32_t)ldt, 24, LDT_DPL);
-        current_tss = 0;
+        setup_tss_desc(&gdt_table[KNL_TSS1>>3], (uint32_t)tss, TSS_LIMIT, TSS_DPL);
+        current_tss = 1;
         __asm__ volatile (
             "ljmp $0x18, $0 \n"
         );
@@ -99,11 +103,12 @@ switch_tss(struct X86TSS *tss, struct X86Desc *ldt)
 void
 start_first_task(struct X86TSS *tss, struct X86Desc *ldt, void *stack, void *func)
 {
-    setup_tss_desc(&gdt_table[3], (uint32_t)tss, 103, TSS_DPL);
-    setup_ldt_desc(&gdt_table[4], (uint32_t)ldt, 24, LDT_DPL);
+    tss->t_LDT = KNL_LDT;
+    setup_tss_desc(&gdt_table[KNL_TSS1>>3], (uint32_t)tss, TSS_LIMIT, TSS_DPL);
+    setup_ldt_desc(&gdt_table[KNL_LDT>>3], (uint32_t)ldt, LDT_LIMIT, LDT_DPL);
     /* 跳转到用户空间:任务一 */
-    ltr(0x18);
-    lldt(0x20);
+    ltr(KNL_TSS1);
+    lldt(KNL_LDT);
     sti();
-    switch_to_user(0xF, 0x17, stack, func);
+    switch_to_user(USR_CS, USR_DS, stack, func);
 }
