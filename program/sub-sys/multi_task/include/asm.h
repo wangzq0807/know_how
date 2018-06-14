@@ -78,7 +78,7 @@ static inline void lldt(uint32_t ldt) {
 static inline void enable_paging() {
     __asm__ volatile (
         "movl %%cr0, %%eax \n"
-        "orl %%eax, 0x80000000 \n"
+        "orl $0x80000000, %%eax \n"
         "movl %%eax, %%cr0 \n"
         :::"eax"
     );

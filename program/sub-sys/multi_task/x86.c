@@ -84,8 +84,8 @@ switch_tss(struct X86TSS *tss, struct X86Desc *ldt)
     tss->t_LDT = KNL_LDT;
     if (current_tss == 1) {
         setup_tss_desc(&gdt_table[KNL_TSS2>>3], (uint32_t)tss, TSS_LIMIT, TSS_DPL);
+        setup_ldt_desc(&gdt_table[KNL_LDT>>3], (uint32_t)ldt, LDT_LIMIT, LDT_DPL);
         current_tss = 2;
-
         // TO:我想用 KNL_TSS2 替代0x20，但不知道该怎么做
         __asm__ volatile (
             "ljmp $0x20, $0 \n"
@@ -93,6 +93,7 @@ switch_tss(struct X86TSS *tss, struct X86Desc *ldt)
     }
     else {
         setup_tss_desc(&gdt_table[KNL_TSS1>>3], (uint32_t)tss, TSS_LIMIT, TSS_DPL);
+        setup_ldt_desc(&gdt_table[KNL_LDT>>3], (uint32_t)ldt, LDT_LIMIT, LDT_DPL);
         current_tss = 1;
         __asm__ volatile (
             "ljmp $0x18, $0 \n"
