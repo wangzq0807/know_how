@@ -122,4 +122,15 @@ static inline void switch_to_user(
     );
 }
 
+static inline struct Task *current_task(void) {
+    struct Task *cur = NULL;
+    __asm__ volatile (
+        "movl %%esp, %%eax \n"
+        "andl $0xfffff000, %%eax \n"
+        "movl (%%eax), %%eax \n"
+        :"=a"(cur)
+    );
+    return cur;
+}
+
 #endif // __IO_H__

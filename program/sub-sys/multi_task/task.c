@@ -56,11 +56,12 @@ switch_task()
     // NOTE：task1经过跳转到task2，task2再跳转回task1时，会从ljmp的下一条指令开始执行。
     // NOTE：下面这种切换方式是抢占式的，单核情况下，当两个线程需要同步时，加锁必须是原子操作
     // NOTE：对于非抢占式的内核，加锁无需原子操作
-    if (current == 1) {
+    struct Task *cur = current_task();
+    if (cur == &task1) {
         current = 2;
         switch_tss(&task2.ts_tss, task2.ts_ldt);
     }
-    else {
+    else if (cur == &task2) {
         current = 1;
         switch_tss(&task1.ts_tss, task1.ts_ldt);
     }
@@ -102,12 +103,6 @@ task_1()
 static void
 task_2()
 {
-    __asm__ volatile (
-        "mov $0x17, %%ax \n"
-        "mov %%ax, %%ds \n"
-        : : : "eax"
-    );
-
     while( 1 ) {
         if (acquire_mutex(&one_mutex) == 0) {
             // 下面是受保护的代码
@@ -143,10 +138,13 @@ setup_first_task()
     const uint8_t USR_DPL = 0xF;
     setup_code_desc(&task1.ts_ldt[1], 0, 0xFFFFF, USR_DPL);
     setup_data_desc(&task1.ts_ldt[2], 0, 0xFFFFF, USR_DPL);
-    task1.ts_user_stack = alloc_page();
-    task1.ts_kern_stack = alloc_page();
+    uint8_t *ks_page = alloc_page();
+    uint8_t *us_page = alloc_page();
+    ((uint32_t *)ks_page)[0] = (uint32_t)&task1;
+
+    task1.ts_user_stack = us_page;
     task1.ts_tss.t_SS_0 = KNL_DS;
-    task1.ts_tss.t_ESP_0 = (uint32_t)&task1.ts_kern_stack[PAGE_SIZE-1];
+    task1.ts_tss.t_ESP_0 = (uint32_t)&ks_page[PAGE_SIZE-1];
 
     uint32_t *pdt = (uint32_t*)alloc_page();
     uint32_t *pte = (uint32_t*)alloc_page();
@@ -173,6 +171,7 @@ setup_second_task()
     setup_data_desc(&task2.ts_ldt[2], 0, 0xFFFFF, USR_DPL);
     uint8_t *ks_page = alloc_page();
     uint8_t *us_page = alloc_page();
+    ((uint32_t *)ks_page)[0] = (uint32_t)&task2;
 
     task2.ts_tss.t_SS_0 = KNL_DS;
     task2.ts_tss.t_ESP_0 = (uint32_t)&ks_page[PAGE_SIZE-1];

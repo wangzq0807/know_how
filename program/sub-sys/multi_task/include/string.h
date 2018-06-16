@@ -36,10 +36,11 @@ static inline int strcmp(const char *s1, const char *s2) {
 }
 
 static inline int strncmp(const char *s1, const char *s2, size_t n) {
-    while ( *s1 && (*s1 == *s2) && --n > 0) {
+    while ( *s1 && (*s1 == *s2) && n-- > 0) {
         s1++;
         s2++;
     }
+    if (n == 0) return 0;
 
     int diff = s1[0] - s2[0];
     if (diff > 0)
@@ -61,12 +62,10 @@ static inline const char *strstr(const char *str, const char *need) {
             const int diff = itr - need;
             if (*itr == 0)
                 return str -= diff;
-            else {
+            else
                 itr = need;
-            }
         }
-        else
-        {
+        else {
             str++;
         }
     }

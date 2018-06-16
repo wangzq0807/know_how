@@ -3,6 +3,7 @@
 #include "asm.h"
 #include "lock.h"
 #include "memory.h"
+#include "string.h"
 
 void
 start_main()
