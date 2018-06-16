@@ -36,10 +36,9 @@ static inline int strcmp(const char *s1, const char *s2) {
 }
 
 static inline int strncmp(const char *s1, const char *s2, size_t n) {
-    while ( *s1 && (*s1 == *s2) && n > 0) {
+    while ( *s1 && (*s1 == *s2) && --n > 0) {
         s1++;
         s2++;
-        n--;
     }
 
     int diff = s1[0] - s2[0];

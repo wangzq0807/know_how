@@ -1,7 +1,5 @@
 #include "memory.h"
 #include "log.h"
-#include "page.h"
-#include "asm.h"
 
 struct PageListHead {
     uint32_t         pl_dummyLock;   // fixme: 链表加锁
@@ -31,20 +29,6 @@ init_memory(uint32_t start, uint32_t end)
         free_page((void*)next);
         next += PAGE_SIZE;
     }
-
-    uint32_t *pdt = (uint32_t*)alloc_page();
-    uint32_t *pte = (uint32_t*)alloc_page();
-    pdt[0] = PAGE_ADDR((uint32_t)pte) | PAGE_PRESENT | PAGE_WRITE | PAGE_USER;
-    uint32_t addr = 0;
-    for (int i = 0; i < 1024; ++i) {
-        pte[i] = PAGE_ADDR(addr) | PAGE_PRESENT | PAGE_WRITE | PAGE_USER;
-        addr += PAGE_SIZE;
-    }
-    asm volatile (
-        "movl %%eax, %%cr3 \n"
-        ::"a"(pdt)
-    );
-    enable_paging();
 }
 
 void *

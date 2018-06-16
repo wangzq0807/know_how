@@ -3,6 +3,7 @@
 #include "asm.h"
 #include "lock.h"
 #include "memory.h"
+// #include "page.h"
 
 /* 任务一 */
 struct Task task1;
@@ -131,6 +132,11 @@ task_2()
     }
 }
 
+#define PAGE_ADDR(addr)     (addr & 0xfffff000)
+#define PAGE_PRESENT        1
+#define PAGE_WRITE          2
+#define PAGE_USER           4
+
 static void
 setup_first_task()
 {
@@ -141,7 +147,22 @@ setup_first_task()
     task1.ts_kern_stack = alloc_page();
     task1.ts_tss.t_SS_0 = KNL_DS;
     task1.ts_tss.t_ESP_0 = (uint32_t)&task1.ts_kern_stack[PAGE_SIZE-1];
-    // task1.ts_tss.t_LDT = KNL_LDT;
+
+    uint32_t *pdt = (uint32_t*)alloc_page();
+    uint32_t *pte = (uint32_t*)alloc_page();
+    pdt[0] = PAGE_ADDR((uint32_t)pte) | PAGE_PRESENT | PAGE_WRITE | PAGE_USER;
+    uint32_t addr = 0;
+    for (int i = 0; i < 1024; ++i) {
+        pte[i] = PAGE_ADDR(addr) | PAGE_PRESENT | PAGE_WRITE | PAGE_USER;
+        addr += PAGE_SIZE;
+    }
+    asm volatile (
+        "movl %%eax, %%cr3 \n"
+        ::"a"(pdt)
+    );
+    // Note: 任务切换时,CR3不会被自动保存
+    task1.ts_tss.t_CR3 = (uint32_t)pdt;
+    task1.ts_tss.t_LDT = KNL_LDT;
 }
 
 static void
@@ -161,7 +182,17 @@ setup_second_task()
     task2.ts_tss.t_ESP = (uint32_t)&us_page[PAGE_SIZE-1];
     task2.ts_tss.t_CS = USR_CS;
     task2.ts_tss.t_EIP = (uint32_t)task_2;
-    // task2.ts_tss.t_LDT = KNL_LDT;
+
+    uint32_t *pdt = (uint32_t*)alloc_page();
+    uint32_t *pte = (uint32_t*)alloc_page();
+    pdt[0] = PAGE_ADDR((uint32_t)pte) | PAGE_PRESENT | PAGE_WRITE | PAGE_USER;
+    uint32_t addr = 0;
+    for (int i = 0; i < 1024; ++i) {
+        pte[i] = PAGE_ADDR(addr) | PAGE_PRESENT | PAGE_WRITE | PAGE_USER;
+        addr += PAGE_SIZE;
+    }
+    task2.ts_tss.t_CR3 = (uint32_t)pdt;
+    task2.ts_tss.t_LDT = KNL_LDT;
 }
 
 void
@@ -178,7 +209,7 @@ start_task()
 
     setup_first_task();
     setup_second_task();
-
+    enable_paging();
     /* 开始第一个进程 */
     start_first_task(&task1.ts_tss,
                     task1.ts_ldt,

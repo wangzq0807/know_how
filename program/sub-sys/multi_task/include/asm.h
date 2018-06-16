@@ -75,6 +75,15 @@ static inline void lldt(uint32_t ldt) {
     );
 }
 
+static inline void ljmp(uint32_t seg) {
+    struct { uint32_t o; uint32_t s; } laddr;
+    laddr.s = seg;
+    __asm__ volatile (
+        "ljmp *%0 \n"
+        ::"m"(laddr.o), "m"(laddr.s)
+    );
+}
+
 static inline void enable_paging() {
     __asm__ volatile (
         "movl %%cr0, %%eax \n"
