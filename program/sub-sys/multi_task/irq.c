@@ -126,11 +126,6 @@ void
 on_syscall_handler()
 {
     print("syscall");
-    __asm__ volatile (
-        "mov $0x10, %%ax \n"
-        "mov %%ax, %%ds \n"
-        : : : "eax"
-    );
 
     switch_task();
 }

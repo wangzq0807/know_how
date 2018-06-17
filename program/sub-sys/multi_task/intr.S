@@ -2,13 +2,13 @@
 #define __INTR_S__
 #include "irq.h"
 
-.text
 #define TRAP_FUNC(num)  \
 .global trap##num;      \
 trap##num:              \
     pushl $num;         \
     jmp all_intr_request
 
+.text
 TRAP_FUNC(IRQ_TIME)
 TRAP_FUNC(IRQ_IGNORE)
 TRAP_FUNC(IRQ_SYSCALL)
@@ -17,6 +17,8 @@ TRAP_FUNC(IRQ_SYSCALL)
 all_intr_request:
     pushal
     pushl %ds
+    movw $KNL_DS, %ax
+    movw %ax, %ds
     call on_all_irq
     popl %ds
     popal

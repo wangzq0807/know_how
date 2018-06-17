@@ -1,8 +1,6 @@
 #ifndef __X86_H__
 #define __X86_H__
 
-#include "defs.h"
-
 #define KNL_DPL     0
 #define USR_DPL     3
 
@@ -22,6 +20,10 @@
 /* 门描述符标志 */
 #define GATE_INTR_FLAG  0x8E00
 #define GATE_TRAP_FLAG  0x8F00
+
+#ifndef __INTR_S__
+
+#include "defs.h"
 
 struct X86Desc {
     uint32_t d_low;
@@ -116,5 +118,6 @@ switch_tss(struct X86TSS *tss, struct X86Desc *ldt);
 
 void
 start_first_task(struct X86TSS *tss, struct X86Desc *ldt, void *stack, void *func);
+#endif // __INTR_S__
 
 #endif // __X86_H__
