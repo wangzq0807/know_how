@@ -3,6 +3,9 @@
 
 #include "defs.h"
 
+#define KNL_DPL     0
+#define USR_DPL     3
+
 /* 内核代码段和数据段 */
 #define KNL_CS      0x8
 #define KNL_DS      0x10
@@ -15,18 +18,15 @@
 /* 用户态代码段和数据段 */
 #define USR_CS      0xF
 #define USR_DS      0x17
+
 /* 门描述符标志 */
 #define GATE_INTR_FLAG  0x8E00
 #define GATE_TRAP_FLAG  0x8F00
-/* 中断向量号 */
-#define INTR_HW_BEG     0x20            // 硬件中断号开始
-#define INTR_TIMER      INTR_HW_BEG
 
 struct X86Desc {
     uint32_t d_low;
     uint32_t d_high;
 };
-extern struct X86Desc idt_table[256];
 
 struct X86DTR {
     uint16_t r_limit;
@@ -70,66 +70,46 @@ struct X86TSS {
  * 描述符
  ************/
 void
-setup_segment_desc(struct X86Desc* desc, uint32_t base, uint32_t limit, uint8_t type, uint8_t dpl, uint8_t prop);
+setup_segment_desc(struct X86Desc* desc, uint32_t base, uint32_t limit, int type, int dpl, int prop);
 
 /* 代码段描述符：非一致性 */
 static inline void
-setup_code_desc(struct X86Desc* desc, uint32_t base, uint32_t limit, uint8_t dpl) {
-    const uint8_t CS_TYPE = 0xA;        // 非一致，可读
-    const uint8_t CS_PROP = 0xC;        // 粒度4KB，32位操作数
-    setup_segment_desc(desc, base, limit, CS_TYPE, dpl, CS_PROP);
+setup_code_desc(struct X86Desc* desc, uint32_t base, uint32_t limit, int dpl) {
+    const int CS_TYPE = 0xA;        // 非一致，可读
+    const int CS_PROP = 0xC;        // 粒度4KB，32位操作数
+    const int CS_DPL = dpl << 1 | 0x9;  // 存在，数据段/代码段
+    setup_segment_desc(desc, base, limit, CS_TYPE, CS_DPL, CS_PROP);
 }
 
 /* 数据段描述符 */
 static inline void
-setup_data_desc(struct X86Desc* desc, uint32_t base, uint32_t limit, uint8_t dpl) {
-    const uint32_t DS_TYPE = 0x2;       // 非一致，可写
-    const uint32_t DS_PROP = 0xC;       // 粒度4KB，32位操作数
-    setup_segment_desc(desc, base, limit, DS_TYPE, dpl, DS_PROP);
+setup_data_desc(struct X86Desc* desc, uint32_t base, uint32_t limit, int dpl) {
+    const int DS_TYPE = 0x2;       // 非一致，可写
+    const int DS_PROP = 0xC;       // 粒度4KB，32位操作数
+    const int DS_DPL = dpl << 1 | 0x9;  // 存在，数据段/代码段
+    setup_segment_desc(desc, base, limit, DS_TYPE, DS_DPL, DS_PROP);
 }
 
 /* 任务状态段描述符 */
 static inline void
-setup_tss_desc(struct X86Desc* desc, uint32_t base, uint32_t limit, uint8_t dpl) {
-    const uint32_t TSS_TYPE = 0x9;      // 非忙
-    const uint32_t TSS_PROP = 0x0;      // 大于等于104字节
-    setup_segment_desc(desc, base, limit, TSS_TYPE, dpl, TSS_PROP);
+setup_tss_desc(struct X86Desc* desc, uint32_t base, uint32_t limit) {
+    const int TSS_TYPE = 0x9;      // 非忙
+    const int TSS_PROP = 0x0;      // 大于等于104字节
+    const int TSS_DPL = 0x8;       // 任务状态段DPL : 存在，特权级0，系统段
+    setup_segment_desc(desc, base, limit, TSS_TYPE, TSS_DPL, TSS_PROP);
 }
 
 /* 局部描述符 */
 static inline void
-setup_ldt_desc(struct X86Desc* desc, uint32_t base, uint32_t limit, uint8_t dpl) {
-    const uint32_t LDT_TYPE = 0x2;      // LDT
-    const uint32_t LDT_PROP = 0x0;      //
-    setup_segment_desc(desc, base, limit, LDT_TYPE, dpl, LDT_PROP);
-}
-
-/**********
- * 系统门
- **********/
-/* 中断门: 中断正在处理时,IF清0,从而屏蔽其他中断 */
-static inline void
-set_intr_gate(int32_t num, void *func_addr, int32_t dpl) {
-    const uint32_t selector = KNL_CS;
-    const uint32_t offset = (uint32_t)func_addr;
-    idt_table[num].d_low = (selector << 16) | (offset & 0xFFFF);
-    idt_table[num].d_high = (offset & 0xFFFF0000) | GATE_INTR_FLAG | (dpl<<13);
-}
-
-/* 陷阱门: 中断正在处理时,IF不清零,可响应更高优先级的中断 */
-static inline void
-set_trap_gate(int32_t num, void *func_addr, int32_t dpl) {
-    const uint32_t selector = KNL_CS;
-    const uint32_t offset = (uint32_t)func_addr;
-    idt_table[num].d_low = (selector << 16) | (offset & 0xFFFF);
-    idt_table[num].d_high = (offset & 0xFFFF0000) | GATE_TRAP_FLAG | (dpl<<13);
+setup_ldt_desc(struct X86Desc* desc, uint32_t base, uint32_t limit) {
+    const int LDT_TYPE = 0x2;      // LDT
+    const int LDT_PROP = 0x0;      //
+    const int LDT_DPL = 0x8;       // LDT段DPL : 存在，特权级0，系统段
+    setup_segment_desc(desc, base, limit, LDT_TYPE, LDT_DPL, LDT_PROP);
 }
 
 void
 setup_gdt();
-
-void
-setup_idt();
 
 void
 switch_tss(struct X86TSS *tss, struct X86Desc *ldt);

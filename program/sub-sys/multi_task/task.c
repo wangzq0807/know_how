@@ -4,6 +4,7 @@
 #include "lock.h"
 #include "memory.h"
 #include "page.h"
+#include "irq.h"
 
 /* 任务一 */
 struct Task task1;
@@ -125,7 +126,6 @@ task_2()
 static void
 setup_first_task()
 {
-    const uint8_t USR_DPL = 0xF;
     setup_code_desc(&task1.ts_ldt[1], 0, 0xFFFFF, USR_DPL);
     setup_data_desc(&task1.ts_ldt[2], 0, 0xFFFFF, USR_DPL);
     uint8_t *ks_page = alloc_page();
@@ -156,7 +156,6 @@ setup_first_task()
 static void
 setup_second_task()
 {
-    const uint8_t USR_DPL = 0xF;
     setup_code_desc(&task2.ts_ldt[1], 0, 0xFFFFF, USR_DPL);
     setup_data_desc(&task2.ts_ldt[2], 0, 0xFFFFF, USR_DPL);
     uint8_t *ks_page = alloc_page();

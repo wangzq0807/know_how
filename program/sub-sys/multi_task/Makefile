@@ -38,7 +38,7 @@ $(BUILD_PATH)/%.o : %.c
 	$(CC) $(CFLAGS) -MP -MMD -c $< -o $@ $(INCLUDES)
 
 $(BUILD_PATH)/%.o : %.S
-	$(CC) $(CFLAGS) -c $^ -o $@
+	$(CC) $(CFLAGS) -MP -MMD -c $< -o $@ $(INCLUDES)
 
 # 包含所有依赖
 -include $(DEPS)

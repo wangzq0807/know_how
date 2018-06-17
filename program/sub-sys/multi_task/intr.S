@@ -1,28 +1,26 @@
-// NOTE:中断处理前要保存寄存器的值
+#ifndef __INTR_S__
+#define __INTR_S__
+#include "irq.h"
+
 .text
-.global on_timer_intr
-on_timer_intr:
+#define TRAP_FUNC(num)  \
+.global trap##num;      \
+trap##num:              \
+    pushl $num;         \
+    jmp all_intr_request
+
+TRAP_FUNC(IRQ_TIME)
+TRAP_FUNC(IRQ_IGNORE)
+TRAP_FUNC(IRQ_SYSCALL)
+
+/* NOTE:中断处理前要保存寄存器的值 */
+all_intr_request:
     pushal
     pushl %ds
-    call on_timer_handler
+    call on_all_irq
     popl %ds
     popal
+    addl $4, %esp    /* 中断号出栈 */
     iret
 
-.global on_ignore_intr
-on_ignore_intr:
-    pushal
-    pushl %ds
-    call on_ignore_handler
-    popl %ds
-    popal
-    iret
-
-.global on_syscall_intr
-on_syscall_intr:
-    pushal
-    pushl %ds
-    call on_syscall_handler
-    popl %ds
-    popal
-    iret
+#endif  /* __INTR_S__ */
