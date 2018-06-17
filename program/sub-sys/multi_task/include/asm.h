@@ -49,15 +49,15 @@ static inline void sti() {
 
 static inline void lidt(void* idtr) {
     __asm__ volatile (
-        "lidt (%%eax) \n"
-        : :"a"(idtr)
+        "lidt (%0) \n"
+        : :"r"(idtr)
     );
 }
 
 static inline void lgdt(void* gdtr) {
     __asm__ volatile (
-        "lgdt (%%eax) \n"
-        : :"a"(gdtr)
+        "lgdt (%0) \n"
+        : :"r"(gdtr)
     );
 }
 
@@ -80,7 +80,14 @@ static inline void ljmp(uint32_t seg) {
     laddr.s = seg;
     __asm__ volatile (
         "ljmp *%0 \n"
-        ::"m"(laddr.o), "m"(laddr.s)
+        : :"m"(laddr.o), "m"(laddr.s)
+    );
+}
+
+static inline void invlpg(void *ptr) {
+    __asm__ volatile (
+        "invlpg ($0) \n"
+        : :"r"(ptr)
     );
 }
 

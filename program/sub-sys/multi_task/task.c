@@ -3,7 +3,7 @@
 #include "asm.h"
 #include "lock.h"
 #include "memory.h"
-// #include "page.h"
+#include "page.h"
 
 /* 任务一 */
 struct Task task1;
@@ -17,9 +17,6 @@ static void task_2();
 struct Mutex one_mutex;
 uint32_t conf_res1 = 1;
 uint32_t conf_res2 = 1;
-
-/* 当前任务 */
-uint32_t current = 1;
 
 static void
 _init_8259A()
@@ -58,11 +55,9 @@ switch_task()
     // NOTE：对于非抢占式的内核，加锁无需原子操作
     struct Task *cur = current_task();
     if (cur == &task1) {
-        current = 2;
         switch_tss(&task2.ts_tss, task2.ts_ldt);
     }
     else if (cur == &task2) {
-        current = 1;
         switch_tss(&task1.ts_tss, task1.ts_ldt);
     }
 }
@@ -127,11 +122,6 @@ task_2()
     }
 }
 
-#define PAGE_ADDR(addr)     (addr & 0xfffff000)
-#define PAGE_PRESENT        1
-#define PAGE_WRITE          2
-#define PAGE_USER           4
-
 static void
 setup_first_task()
 {
@@ -148,10 +138,10 @@ setup_first_task()
 
     uint32_t *pdt = (uint32_t*)alloc_page();
     uint32_t *pte = (uint32_t*)alloc_page();
-    pdt[0] = PAGE_ADDR((uint32_t)pte) | PAGE_PRESENT | PAGE_WRITE | PAGE_USER;
+    pdt[0] = PAGE_FLOOR((uint32_t)pte) | PAGE_PRESENT | PAGE_WRITE | PAGE_USER;
     uint32_t addr = 0;
     for (int i = 0; i < 1024; ++i) {
-        pte[i] = PAGE_ADDR(addr) | PAGE_PRESENT | PAGE_WRITE | PAGE_USER;
+        pte[i] = PAGE_FLOOR(addr) | PAGE_PRESENT | PAGE_WRITE | PAGE_USER;
         addr += PAGE_SIZE;
     }
     asm volatile (
@@ -184,10 +174,10 @@ setup_second_task()
 
     uint32_t *pdt = (uint32_t*)alloc_page();
     uint32_t *pte = (uint32_t*)alloc_page();
-    pdt[0] = PAGE_ADDR((uint32_t)pte) | PAGE_PRESENT | PAGE_WRITE | PAGE_USER;
+    pdt[0] = PAGE_FLOOR((uint32_t)pte) | PAGE_PRESENT | PAGE_WRITE | PAGE_USER;
     uint32_t addr = 0;
     for (int i = 0; i < 1024; ++i) {
-        pte[i] = PAGE_ADDR(addr) | PAGE_PRESENT | PAGE_WRITE | PAGE_USER;
+        pte[i] = PAGE_FLOOR(addr) | PAGE_PRESENT | PAGE_WRITE | PAGE_USER;
         addr += PAGE_SIZE;
     }
     task2.ts_tss.t_CR3 = (uint32_t)pdt;

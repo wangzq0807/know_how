@@ -1,5 +1,6 @@
 #include "memory.h"
 #include "log.h"
+#include "page.h"
 
 struct PageListHead {
     uint32_t         pl_dummyLock;   // fixme: 链表加锁
