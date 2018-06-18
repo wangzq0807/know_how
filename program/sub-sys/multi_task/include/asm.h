@@ -91,6 +91,22 @@ static inline void invlpg(void *ptr) {
     );
 }
 
+static inline void load_cr3(void *pdt) {
+    __asm__ volatile (
+        "movl %%eax, %%cr3 \n"
+        : :"a"(pdt)
+    );
+}
+
+static inline int get_cr2() {
+    unsigned int cr2;
+    __asm__ volatile (
+        "movl %%cr2, %%eax"
+        :"=a"(cr2)
+    );
+    return cr2;
+}
+
 static inline void enable_paging() {
     __asm__ volatile (
         "movl %%cr0, %%eax \n"
@@ -146,6 +162,10 @@ static inline uint32_t atomic_swap(uint32_t *org, uint32_t new_val) {
         :"+m"(*org), "+r"(new_val)
     );
     return new_val;
+}
+
+static inline void smash_memory() {
+    __asm__ volatile("nop":::"memory");
 }
 
 #endif // __IO_H__

@@ -55,11 +55,11 @@ switch_task()
     // NOTE：下面这种切换方式是抢占式的，单核情况下，当两个线程需要同步时，加锁必须是原子操作
     // NOTE：对于非抢占式的内核，加锁无需原子操作
     struct Task *cur = current_task();
-    if (cur == &task1) {
-        switch_tss(&task2.ts_tss);
+    if (cur->ts_pid == 0 && cur->ts_child_head ) {
+        switch_tss(&cur->ts_child_head->ts_tss);
     }
-    else if (cur == &task2) {
-        switch_tss(&task1.ts_tss);
+    else if (cur->ts_pid == 1) {
+        switch_tss(&cur->ts_parent->ts_tss);
     }
 }
 
@@ -71,6 +71,12 @@ task_1()
         "mov %%ax, %%ds \n"
         : : : "%eax"
     );
+    pid_t pid = 0;
+    __asm__ volatile (
+        "int $0x80"
+        :"=a"(pid)
+    );
+    printx(pid);
 
     while( 1 ) {
         if (acquire_mutex(&one_mutex) == 0) {
@@ -85,7 +91,7 @@ task_1()
             release_mutex(&one_mutex);
         }
         else {
-            __asm__ volatile("int $0x80");
+            // __asm__ volatile("int $0x80");
         }
         // 延时
         // NOTE : 如果从释放锁到重新申请锁的时间过短，
@@ -126,6 +132,7 @@ task_2()
 static void
 setup_first_task()
 {
+    task1.ts_pid = 0;
     uint8_t *ks_page = alloc_page();
     uint8_t *us_page = alloc_page();
     ((uint32_t *)ks_page)[0] = (uint32_t)&task1;
@@ -142,13 +149,11 @@ setup_first_task()
         pte[i] = PAGE_FLOOR(addr) | PAGE_PRESENT | PAGE_WRITE | PAGE_USER;
         addr += PAGE_SIZE;
     }
-    asm volatile (
-        "movl %%eax, %%cr3 \n"
-        ::"a"(pdt)
-    );
     // Note: 任务切换时,CR3不会被自动保存
     task1.ts_tss.t_CR3 = (uint32_t)pdt;
     task1.ts_tss.t_LDT = KNL_LDT;
+
+    load_cr3(pdt);
 }
 
 static void

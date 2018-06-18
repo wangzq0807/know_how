@@ -18,6 +18,8 @@ typedef uint16_t        dev_t;
 typedef int32_t         pid_t;
 typedef int32_t         gid_t;
 typedef int32_t         uid_t;
+typedef uint32_t        pde_t;
+typedef uint32_t        pte_t;
 #define NO_ERROR    (0)
 
 #define BYTE1(val) ((val) & 0xFF)

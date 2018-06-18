@@ -2,6 +2,8 @@
 #include "task.h"
 #include "asm.h"
 #include "log.h"
+#include "syscall.h"
+#include "page.h"
 
 /* 中断描述符表 */
 struct X86Desc idt_table[256] = { 0 };
@@ -13,52 +15,6 @@ DECL_TRAP_FUNC(IRQ_SYSCALL)
 DECL_TRAP_FUNC(IRQ_IGNORE)
 
 #define TRAP_FUNC(num) trap##num
-
-struct TrapFrame {
-    /* 由硬件入栈 */
-    int     tf_eip;
-    int     tf_cs;
-    int     tf_eflags;
-    /* 系统特权级改变时入栈 */
-    int     tf_esp;
-    int     tf_ss;
-};
-
-struct ErrorFrame {
-    /* 当段错误时由硬件入栈(8-14) */
-    int     ef_errno;
-    /* 由硬件入栈 */
-    int     ef_eip;
-    int     ef_cs;
-    int     ef_eflags;
-    /* 系统特权级改变时入栈 */
-    int     ef_esp;
-    int     ef_ss;
-};
-
-struct IrqFrame {
-    int     if_ds;
-    /* 下面是pushal保存的寄存器 */
-    int     if_edi;
-    int     if_esi;
-    int     if_ebp;
-    int     if_osp;
-    int     if_ebx;
-    int     if_edx;
-    int     if_ecx;
-    int     if_eax;
-    /* 中断号 */
-    int     if_irqno;
-    /* 由硬件入栈 */
-    union {
-        struct TrapFrame    if_trap;
-        struct ErrorFrame   if_error;
-    };
-};
-
-extern void on_timer_intr();
-extern void on_ignore_intr();
-extern void on_syscall_intr();
 
 /* 中断门: 中断正在处理时,IF清0,从而屏蔽其他中断 */
 static void
@@ -104,14 +60,30 @@ on_all_irq(struct IrqFrame irqframe)
     outb(0x20, 0xA0);
 
     switch (irqframe.if_irqno) {
-        case IRQ_TIME: on_timer_handler(); break;
-        case IRQ_SYSCALL: on_syscall_handler(); break;
+        case IRQ_PAGE: {
+            on_page_fault(&irqframe);
+            break;
+        }
+        case IRQ_TIME: {
+            on_timer_handler(&irqframe);
+            break;
+        }
+        case IRQ_SYSCALL: {
+            on_syscall_handler(&irqframe);
+            break;
+        }
         default: on_ignore_handler(); break;
     }
+    /***************************
+     * 防止irqframe被优化掉
+     * NOTE:gcc优化时，发现irqframe没有被用到，为了节省堆栈空间，
+     * 很可能覆盖irqframe中的值
+     ***************************/
+    smash_memory();
 }
 
 void
-on_timer_handler()
+on_timer_handler(struct IrqFrame *irqframe)
 {
     switch_task();
 }
@@ -123,9 +95,9 @@ on_ignore_handler()
 }
 
 void
-on_syscall_handler()
+on_syscall_handler(struct IrqFrame *irqframe)
 {
     print("syscall");
-
-    switch_task();
+    irqframe->if_EAX = knl_fork(irqframe);
+    // printx(irqframe->if_EAX);
 }
