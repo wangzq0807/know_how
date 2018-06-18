@@ -21,9 +21,6 @@ struct Task {
     struct Task     *ts_hash_next;
 
     struct X86TSS   ts_tss;
-    struct X86Desc  ts_ldt[3];
-    uint8_t         *ts_user_stack;
-    uint8_t         *ts_kern_stack;
 };
 
 void

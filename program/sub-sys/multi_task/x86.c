@@ -7,7 +7,7 @@ struct X86DTR gdt_ptr = { 0 };
 
 /* 当前tss */
 uint32_t current_tss = 1;
-
+struct X86Desc  ldt[3];
 // 限长
 #define LDT_LIMIT   (3*8)
 #define TSS_LIMIT   103
@@ -45,7 +45,7 @@ setup_gdt()
 }
 
 void
-switch_tss(struct X86TSS *tss, struct X86Desc *ldt)
+switch_tss(struct X86TSS *tss)
 {
     if (current_tss == 1) {
         setup_tss_desc(&gdt_table[KNL_TSS2>>3], (uint32_t)tss, TSS_LIMIT);
@@ -61,13 +61,15 @@ switch_tss(struct X86TSS *tss, struct X86Desc *ldt)
 }
 
 void
-start_first_task(struct X86TSS *tss, struct X86Desc *ldt, void *stack, void *func)
+start_first_task(struct X86TSS *tss, void *func)
 {
+    setup_code_desc(&ldt[1], 0, 0xFFFFF, USR_DPL);
+    setup_data_desc(&ldt[2], 0, 0xFFFFF, USR_DPL);
     setup_tss_desc(&gdt_table[KNL_TSS1>>3], (uint32_t)tss, TSS_LIMIT);
     setup_ldt_desc(&gdt_table[KNL_LDT>>3], (uint32_t)ldt, LDT_LIMIT);
     /* 跳转到用户空间:任务一 */
     ltr(KNL_TSS1);
     lldt(KNL_LDT);
     sti();
-    switch_to_user(USR_CS, USR_DS, stack, func);
+    switch_to_user(USR_CS, USR_DS, (void *)tss->t_ESP, func);
 }

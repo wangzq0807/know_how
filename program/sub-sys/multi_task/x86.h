@@ -114,10 +114,10 @@ void
 setup_gdt();
 
 void
-switch_tss(struct X86TSS *tss, struct X86Desc *ldt);
+switch_tss(struct X86TSS *tss);
 
 void
-start_first_task(struct X86TSS *tss, struct X86Desc *ldt, void *stack, void *func);
+start_first_task(struct X86TSS *tss, void *func);
 #endif // __INTR_S__
 
 #endif // __X86_H__

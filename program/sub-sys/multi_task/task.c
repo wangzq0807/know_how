@@ -56,10 +56,10 @@ switch_task()
     // NOTE：对于非抢占式的内核，加锁无需原子操作
     struct Task *cur = current_task();
     if (cur == &task1) {
-        switch_tss(&task2.ts_tss, task2.ts_ldt);
+        switch_tss(&task2.ts_tss);
     }
     else if (cur == &task2) {
-        switch_tss(&task1.ts_tss, task1.ts_ldt);
+        switch_tss(&task1.ts_tss);
     }
 }
 
@@ -126,15 +126,13 @@ task_2()
 static void
 setup_first_task()
 {
-    setup_code_desc(&task1.ts_ldt[1], 0, 0xFFFFF, USR_DPL);
-    setup_data_desc(&task1.ts_ldt[2], 0, 0xFFFFF, USR_DPL);
     uint8_t *ks_page = alloc_page();
     uint8_t *us_page = alloc_page();
     ((uint32_t *)ks_page)[0] = (uint32_t)&task1;
 
-    task1.ts_user_stack = us_page;
     task1.ts_tss.t_SS_0 = KNL_DS;
     task1.ts_tss.t_ESP_0 = (uint32_t)&ks_page[PAGE_SIZE-1];
+    task1.ts_tss.t_ESP = (uint32_t)&us_page[PAGE_SIZE-1];
 
     uint32_t *pdt = (uint32_t*)alloc_page();
     uint32_t *pte = (uint32_t*)alloc_page();
@@ -156,8 +154,6 @@ setup_first_task()
 static void
 setup_second_task()
 {
-    setup_code_desc(&task2.ts_ldt[1], 0, 0xFFFFF, USR_DPL);
-    setup_data_desc(&task2.ts_ldt[2], 0, 0xFFFFF, USR_DPL);
     uint8_t *ks_page = alloc_page();
     uint8_t *us_page = alloc_page();
     ((uint32_t *)ks_page)[0] = (uint32_t)&task2;
@@ -199,8 +195,5 @@ start_task()
     setup_second_task();
     enable_paging();
     /* 开始第一个进程 */
-    start_first_task(&task1.ts_tss,
-                    task1.ts_ldt,
-                    &task1.ts_user_stack[PAGE_SIZE-1],
-                    task_1);
+    start_first_task(&task1.ts_tss, task_1);
 }
