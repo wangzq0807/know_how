@@ -10,6 +10,7 @@ struct X86Desc idt_table[256] = { 0 };
 struct X86DTR idt_ptr = { 0 };
 
 #define DECL_TRAP_FUNC(num) extern void trap##num();
+DECL_TRAP_FUNC(IRQ_PAGE)
 DECL_TRAP_FUNC(IRQ_TIME)
 DECL_TRAP_FUNC(IRQ_SYSCALL)
 DECL_TRAP_FUNC(IRQ_IGNORE)
@@ -45,6 +46,7 @@ setup_idt()
     set_intr_gate(IRQ_TIME, &TRAP_FUNC(IRQ_TIME), KNL_DPL);
     /* 系统调用 */
     set_trap_gate(IRQ_SYSCALL, &TRAP_FUNC(IRQ_SYSCALL), USR_DPL);
+    set_trap_gate(IRQ_PAGE, &TRAP_FUNC(IRQ_PAGE), USR_DPL);
     /* 重新加载idt */
     const uint32_t base_addr = (uint32_t)(&idt_table);
     idt_ptr.r_limit = 256*8 -1;
@@ -61,6 +63,7 @@ on_all_irq(struct IrqFrame irqframe)
 
     switch (irqframe.if_irqno) {
         case IRQ_PAGE: {
+            print("irq_page ");
             on_page_fault(&irqframe);
             break;
         }
@@ -89,9 +92,10 @@ on_timer_handler(struct IrqFrame *irqframe)
 }
 
 void
-on_ignore_handler()
+on_ignore_handler(struct IrqFrame *irqframe)
 {
     print("ignore");
+    printxw(irqframe->if_irqno);
 }
 
 void
@@ -99,5 +103,4 @@ on_syscall_handler(struct IrqFrame *irqframe)
 {
     print("syscall");
     irqframe->if_EAX = knl_fork(irqframe);
-    // printx(irqframe->if_EAX);
 }

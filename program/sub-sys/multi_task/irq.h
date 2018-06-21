@@ -15,28 +15,6 @@
 struct X86Desc;
 extern struct X86Desc idt_table[256];
 
-struct TrapFrame {
-    /* 由硬件入栈 */
-    int     tf_EIP;
-    int     tf_CS;
-    int     tf_EFLAGS;
-    /* 系统特权级改变时入栈 */
-    int     tf_ESP;
-    int     tf_SS;
-};
-
-struct ErrorFrame {
-    /* 当段错误时由硬件入栈(8-14) */
-    int     ef_errno;
-    /* 由硬件入栈 */
-    int     ef_EIP;
-    int     ef_CS;
-    int     ef_EFLAGS;
-    /* 系统特权级改变时入栈 */
-    int     ef_ESP;
-    int     ef_SS;
-};
-
 struct IrqFrame {
     int     if_DS;
     /* 下面是pushal保存的寄存器 */
@@ -50,11 +28,15 @@ struct IrqFrame {
     int     if_EAX;
     /* 中断号 */
     int     if_irqno;
+    /* 当段错误时由硬件入栈(8-14) */
+    int     if_errno;
     /* 由硬件入栈 */
-    union {
-        struct TrapFrame    if_trap;
-        struct ErrorFrame   if_error;
-    };
+    int     if_EIP;
+    int     if_CS;
+    int     if_EFLAGS;
+    /* 系统特权级改变时入栈 */
+    int     if_ESP;
+    int     if_SS;
 };
 
 /**********

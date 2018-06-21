@@ -1,5 +1,6 @@
 #include "x86.h"
 #include "asm.h"
+#include "log.h"
 
 /* 全局描述符表 */
 struct X86Desc gdt_table[7] = { 0 };
@@ -72,4 +73,17 @@ start_first_task(struct X86TSS *tss, void *func)
     lldt(KNL_LDT);
     sti();
     switch_to_user(USR_CS, USR_DS, (void *)tss->t_ESP, func);
+}
+
+void
+dump_tss(struct X86TSS *tss)
+{
+    print("tssB ");
+    printx(tss->t_CS);
+    printx(tss->t_EIP);
+    printx(tss->t_SS);
+    printx(tss->t_ESP);
+    printx(tss->t_SS_0);
+    printx(tss->t_ESP_0);
+    print("tssE ");
 }

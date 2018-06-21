@@ -8,8 +8,6 @@
 
 /* 任务一 */
 struct Task task1;
-/* 任务二 */
-struct Task task2;
 
 static void task_1();
 static void task_2();
@@ -76,7 +74,8 @@ task_1()
         "int $0x80"
         :"=a"(pid)
     );
-    printx(pid);
+    if (pid == 0)
+        task_2();
 
     while( 1 ) {
         if (acquire_mutex(&one_mutex) == 0) {
@@ -138,8 +137,8 @@ setup_first_task()
     ((uint32_t *)ks_page)[0] = (uint32_t)&task1;
 
     task1.ts_tss.t_SS_0 = KNL_DS;
-    task1.ts_tss.t_ESP_0 = (uint32_t)&ks_page[PAGE_SIZE-1];
-    task1.ts_tss.t_ESP = (uint32_t)&us_page[PAGE_SIZE-1];
+    task1.ts_tss.t_ESP_0 = (uint32_t)&ks_page[PAGE_SIZE];
+    task1.ts_tss.t_ESP = (uint32_t)&us_page[PAGE_SIZE];
 
     uint32_t *pdt = (uint32_t*)alloc_page();
     uint32_t *pte = (uint32_t*)alloc_page();
@@ -156,34 +155,6 @@ setup_first_task()
     load_cr3(pdt);
 }
 
-static void
-setup_second_task()
-{
-    uint8_t *ks_page = alloc_page();
-    uint8_t *us_page = alloc_page();
-    ((uint32_t *)ks_page)[0] = (uint32_t)&task2;
-
-    task2.ts_tss.t_SS_0 = KNL_DS;
-    task2.ts_tss.t_ESP_0 = (uint32_t)&ks_page[PAGE_SIZE-1];
-    task2.ts_tss.t_EFLAGS = 0x200;  // NOTE: 允许中断
-    task2.ts_tss.t_DS = USR_DS;
-    task2.ts_tss.t_SS = USR_DS;
-    task2.ts_tss.t_ESP = (uint32_t)&us_page[PAGE_SIZE-1];
-    task2.ts_tss.t_CS = USR_CS;
-    task2.ts_tss.t_EIP = (uint32_t)task_2;
-
-    uint32_t *pdt = (uint32_t*)alloc_page();
-    uint32_t *pte = (uint32_t*)alloc_page();
-    pdt[0] = PAGE_FLOOR((uint32_t)pte) | PAGE_PRESENT | PAGE_WRITE | PAGE_USER;
-    uint32_t addr = 0;
-    for (int i = 0; i < 1024; ++i) {
-        pte[i] = PAGE_FLOOR(addr) | PAGE_PRESENT | PAGE_WRITE | PAGE_USER;
-        addr += PAGE_SIZE;
-    }
-    task2.ts_tss.t_CR3 = (uint32_t)pdt;
-    task2.ts_tss.t_LDT = KNL_LDT;
-}
-
 void
 start_task()
 {
@@ -197,7 +168,7 @@ start_task()
     _init_timer();
 
     setup_first_task();
-    setup_second_task();
+    // setup_second_task();
     enable_paging();
     /* 开始第一个进程 */
     start_first_task(&task1.ts_tss, task_1);

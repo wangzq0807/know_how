@@ -118,6 +118,8 @@ switch_tss(struct X86TSS *tss);
 
 void
 start_first_task(struct X86TSS *tss, void *func);
+
+void dump_tss(struct X86TSS *tss);
 #endif // __INTR_S__
 
 #endif // __X86_H__

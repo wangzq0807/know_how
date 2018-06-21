@@ -3,9 +3,10 @@
 #include "defs.h"
 
 static inline void memcpy(void *dest, const void *src, size_t size) {
-    while (size--) {
-        ((char*)dest)[size] = ((char*)src)[size];
-    }
+    size--;
+    do {
+        ((uint8_t*)dest)[size] = ((uint8_t*)src)[size];
+    } while (size--);
 }
 
 static inline void memset(void *dest, int value, size_t size) {
