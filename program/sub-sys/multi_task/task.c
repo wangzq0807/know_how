@@ -117,7 +117,7 @@ task_2()
             release_mutex(&one_mutex);
         }
         else {
-            __asm__ volatile("int $0x80");
+            // __asm__ volatile("int $0x80");
         }
         // 延时
         // NOTE : 如果从释放锁到重新申请锁的时间过短，
@@ -168,8 +168,8 @@ start_task()
     _init_timer();
 
     setup_first_task();
-    // setup_second_task();
     enable_paging();
+    sti();
     /* 开始第一个进程 */
     start_first_task(&task1.ts_tss, task_1);
 }

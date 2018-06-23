@@ -71,7 +71,6 @@ start_first_task(struct X86TSS *tss, void *func)
     /* 跳转到用户空间:任务一 */
     ltr(KNL_TSS1);
     lldt(KNL_LDT);
-    sti();
     switch_to_user(USR_CS, USR_DS, (void *)tss->t_ESP, func);
 }
 

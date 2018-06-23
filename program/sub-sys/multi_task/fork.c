@@ -61,12 +61,12 @@ setup_page_tables(struct Task *cur_task, struct Task *new_task)
 
     for (int npde = 0; npde < (PAGE_SIZE / sizeof(pde_t)); ++npde) {
         if (cur_pdt[npde] & PAGE_PRESENT) {
-            new_pdt[npde] = cur_pdt[npde];
             pte_t *cur_pte = (pte_t *)PAGE_FLOOR(cur_pdt[npde]);
             pte_t *new_pte = (pte_t *)alloc_page();
-            for (int npte = 0; npte < (PAGE_SIZE / sizeof(pde_t)); ++npte) {
+            new_pdt[npde] = PAGE_FLOOR((uint32_t)new_pte) | PAGE_WRITE | PAGE_USER | PAGE_PRESENT;
+            for (int npte = 0; npte < (PAGE_SIZE / sizeof(pte_t)); ++npte) {
                 if (cur_pte[npte] & PAGE_PRESENT) {
-                    if (npte < 160 || npte > 255)
+                    if (npte > 255)
                         cur_pte[npte] &= ~PAGE_WRITE;
                     new_pte[npte] = cur_pte[npte];
                 }

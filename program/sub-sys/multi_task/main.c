@@ -8,6 +8,6 @@
 void
 start_main()
 {
-    init_memory(1*1024*1024, 4*1024*1024);
+    init_memory(2*1024*1024, 4*1024*1024);
     start_task();
 }
