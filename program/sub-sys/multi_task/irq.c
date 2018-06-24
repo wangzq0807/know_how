@@ -17,6 +17,18 @@ DECL_TRAP_FUNC(IRQ_IGNORE)
 
 #define TRAP_FUNC(num) trap##num
 
+typedef int (*syscallf)(struct IrqFrame *);
+struct SystemCall{
+    uint32_t    sc_num;
+    syscallf    sc_func;
+};
+
+struct SystemCall syscall[] = {
+    {0, knl_fork},
+    {0, knl_print},
+    {0, knl_exec},
+};
+
 /* 中断门: 中断正在处理时,IF清0,从而屏蔽其他中断 */
 static void
 set_intr_gate(int32_t num, void *func_addr, int32_t dpl) {
@@ -72,10 +84,10 @@ on_all_irq(struct IrqFrame irqframe)
             break;
         }
         case IRQ_SYSCALL: {
-            on_syscall_handler(&irqframe);
+            irqframe.if_EAX = syscall[irqframe.if_EAX].sc_func(&irqframe);
             break;
         }
-        default: on_ignore_handler(); break;
+        default: on_ignore_handler(&irqframe); break;
     }
     /***************************
      * 防止irqframe被优化掉
@@ -95,12 +107,12 @@ void
 on_ignore_handler(struct IrqFrame *irqframe)
 {
     print("ignore");
-    printxw(irqframe->if_irqno);
+    printxw(irqframe->if_EIP);
 }
 
-void
-on_syscall_handler(struct IrqFrame *irqframe)
+int
+knl_print(struct IrqFrame *irqframe)
 {
-    print("syscall");
-    irqframe->if_EAX = knl_fork(irqframe);
+    print("C");
+    return 0;
 }

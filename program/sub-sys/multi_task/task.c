@@ -61,6 +61,39 @@ switch_task()
     }
 }
 
+#define fork()              \
+({                          \
+    pid_t pid = 0;          \
+    __asm__ volatile (      \
+        "movl $0, %%eax \n" \
+        "int $0x80 \n"      \
+        :"=a"(pid)          \
+    );                      \
+    pid;                    \
+})
+
+#define child_print()       \
+({                          \
+    int ret = 0;            \
+    __asm__ volatile (      \
+        "movl $1, %%eax \n" \
+        "int $0x80 \n"      \
+        :"=a"(ret)          \
+    );                      \
+    ret;                    \
+})
+
+#define exec()              \
+({                          \
+    int ret = 0;            \
+    __asm__ volatile (      \
+        "movl $2, %%eax \n" \
+        "int $0x80 \n"      \
+        :"=a"(ret)          \
+    );                      \
+    ret;                    \
+})
+
 static void
 task_1()
 {
@@ -69,24 +102,15 @@ task_1()
         "mov %%ax, %%ds \n"
         : : : "%eax"
     );
-    pid_t pid = 0;
-    __asm__ volatile (
-        "int $0x80"
-        :"=a"(pid)
-    );
+    pid_t pid = fork();
+
     if (pid == 0)
         task_2();
 
     while( 1 ) {
         if (acquire_mutex(&one_mutex) == 0) {
             // 下面是受保护的代码
-            conf_res1 = 1111;
-            conf_res2 = 2222;
-            __asm__ volatile("nop":::"memory");
-            if (conf_res1 != 1111 || conf_res2 != 2222)
-                print("A");
-            else
-                print("C");
+            print("P");
             release_mutex(&one_mutex);
         }
         else {
@@ -104,16 +128,10 @@ task_1()
 static void
 task_2()
 {
+    exec();
     while( 1 ) {
         if (acquire_mutex(&one_mutex) == 0) {
-            // 下面是受保护的代码
-            conf_res2 = 4444;
-            conf_res1 = 3333;
-            __asm__ volatile("nop":::"memory");
-            if (conf_res1 != 3333 || conf_res2 != 4444)
-                print("B");
-            else
-                print("D");
+            child_print();
             release_mutex(&one_mutex);
         }
         else {

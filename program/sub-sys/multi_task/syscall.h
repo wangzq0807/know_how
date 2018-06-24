@@ -3,6 +3,8 @@
 #include "defs.h"
 #include "irq.h"
 
-pid_t knl_fork(struct IrqFrame *irq);
+extern int knl_fork(struct IrqFrame *irq);
+extern int knl_print(struct IrqFrame *irq);
+extern int knl_exec(struct IrqFrame *irq);
 
 #endif

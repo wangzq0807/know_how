@@ -28,6 +28,7 @@ floopy.img : kernel
 	@echo "将内核写入虚拟磁盘floopy.img..."
 	@dd if=/dev/zero of=floopy.img bs=512 count=2880
 	@dd if=kernel.img of=floopy.img bs=512 conv=notrunc
+	@dd if=one_task of=floopy.img bs=512 conv=notrunc seek=40
 
 # 内核的链接规则
 kernel : $(OBJECTS)
