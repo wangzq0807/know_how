@@ -1,6 +1,6 @@
-#ifndef __MAIN_H__
-#define __MAIN_H__
+
 #include "defs.h"
+#include "asm.h"
 
 #define SCREEN_ADR  0xB8000    /* 显存地址 */
 #define ONE_LINE    160        /* 一行的空间大小 */
@@ -43,4 +43,12 @@ printx(uint32_t val)
     print(buffer);
 }
 
-#endif
+void
+update_cursor(int x, int y)
+{
+    int pos = y * 80 + x;
+    outb(0xe, 0x3d4);
+    outb((uint8_t)(pos >> 8), 0x3d5);
+    outb(0xf, 0x3d4);
+    outb((uint8_t)(pos & 0xff), 0x3d5);
+}

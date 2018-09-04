@@ -39,6 +39,10 @@ _start:
 	movw $vbe_info, %di
 	movw $0x4F00, %ax
 	int $0x10
+
+	/* 字符模式 */
+	movw $0x3, %ax
+	int $0x10
 	
     cli					    /* 关闭中断 */
 	/* 设置gdtr和idtr */
