@@ -40,7 +40,7 @@ _start:
 	movw $0x4F00, %ax
 	int $0x10
 
-	/* 字符模式 */
+	/* 字符模式, 80*25, 16色*/
 	movw $0x3, %ax
 	int $0x10
 	

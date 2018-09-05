@@ -1,31 +1,75 @@
-
-#include "defs.h"
 #include "asm.h"
+#include "vga.h"
 
-#define SCREEN_ADR  0xB8000    /* 显存地址 */
-#define ONE_LINE    160        /* 一行的空间大小 */
-#define ONE_PAGE    0x1000     /* 一页的空间大小 */
-#define CHAR_PROP   0x0F       /* 字符属性(白色) */
 uint32_t cursor_pos = 0;
+uint8_t bk_color = COL_BLACK;
+uint8_t fg_color = COL_GRAY;
+
+typedef struct _VgaChar VgaChar;
+struct _VgaChar
+{
+    char    vc_char;
+    uint8_t vc_color;
+};
+
+static void _update_cursor();
+static void _clear_line(int ln);
+static void _scroll_down(int nline);
+
+#define SCREEN_ADR          0xB8000     /* 显存地址 */
+#define CHARS_PER_LINE      80          /* 一行的字符数 */
+#define LINES_PER_PAGE      25          /* 一页的行数 */
+#define ONE_PAGE    (CHARS_PER_LINE * LINES_PER_PAGE)
+
+#define VGA_ROM()   ((VgaChar *)(SCREEN_ADR))
+#define CUR_COLOR() (bk_color << 4 | fg_color)
+
+void
+set_color(int bk, int fg)
+{
+    bk_color = (uint8_t)(bk & 0xF);
+    fg_color = (uint8_t)(fg & 0xF);
+}
+
 void
 print(const char *buffer)
 {
-    for (uint32_t i = 0; i < 0xffff; ++i) {
-        char* next_addr = (char*)(SCREEN_ADR + (cursor_pos << 1));
-        if (buffer[i] == '\n') {
-            cursor_pos = (cursor_pos + 80) / 80 * 80;
+    while(*buffer) {
+        VgaChar* next_addr = VGA_ROM() + cursor_pos;
+        switch(*buffer) {
+            case '\n':
+            case '\r':
+            {
+                int nextln = cursor_pos / CHARS_PER_LINE + 1;
+                cursor_pos = nextln * CHARS_PER_LINE;
+                _clear_line(nextln);
+                break;
+            }
+            case '\b':
+            {
+                if (cursor_pos > 0)
+                    cursor_pos -= 1;
+                VgaChar* curchar = VGA_ROM() + cursor_pos;
+                curchar->vc_char = ' ';
+                curchar->vc_color = CUR_COLOR();
+                break;
+            }
+            default:
+            {
+                next_addr->vc_char = *buffer;
+                next_addr->vc_color = CUR_COLOR();
+                ++cursor_pos;
+                break;
+            }
         }
-        else if (buffer[i] == '\0') {
-            return ;
-        }
-        else {
-            *next_addr = buffer[i];
-            *(next_addr+1) = CHAR_PROP;
-            ++cursor_pos;
-        }
-        if (cursor_pos >= 2000)
-            cursor_pos = 0;
+        buffer++;
     }
+    int curline = cursor_pos / CHARS_PER_LINE;
+    if (curline > (LINES_PER_PAGE - 1)) {
+        int scrline = curline - LINES_PER_PAGE + 1;
+        _scroll_down(scrline);
+    }
+    _update_cursor();
 }
 
 void
@@ -44,11 +88,49 @@ printx(uint32_t val)
 }
 
 void
-update_cursor(int x, int y)
+set_cursor(int x, int y)
 {
-    int pos = y * 80 + x;
+    y = y % LINES_PER_PAGE;
+    x = x % CHARS_PER_LINE;
+    cursor_pos = y * CHARS_PER_LINE + x;
+    _update_cursor();
+}
+
+void
+get_cursor(int *x, int *y)
+{
+    *x = cursor_pos % CHARS_PER_LINE;
+    *y = cursor_pos / CHARS_PER_LINE;
+}
+
+static void
+_scroll_down(int nline)
+{
+    VgaChar* dst_chars = VGA_ROM();
+    VgaChar* src_chars = VGA_ROM() + CHARS_PER_LINE * nline;
+    for (int i = nline; i < LINES_PER_PAGE + nline; ++i) {
+        for (int j = 0; j < CHARS_PER_LINE; ++j)
+            *dst_chars++ = *src_chars++;
+    }
+    cursor_pos -= CHARS_PER_LINE * nline; 
+}
+
+static void
+_update_cursor()
+{
     outb(0xe, 0x3d4);
-    outb((uint8_t)(pos >> 8), 0x3d5);
+    outb((uint8_t)(cursor_pos >> 8), 0x3d5);
     outb(0xf, 0x3d4);
-    outb((uint8_t)(pos & 0xff), 0x3d5);
+    outb((uint8_t)(cursor_pos & 0xff), 0x3d5);
+}
+
+void
+_clear_line(int ln)
+{
+    int start = ln * CHARS_PER_LINE;
+    VgaChar blank_char = { ' ', CUR_COLOR() };
+    VgaChar* linechars = VGA_ROM() + start;
+    for (int i = 0; i < CHARS_PER_LINE; ++i) {
+        linechars[i] = blank_char;
+    }
 }
