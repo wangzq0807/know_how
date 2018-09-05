@@ -10,6 +10,7 @@ start_main()
     print("asdf\na\nasdfasdf\naa");
     print("asdf\na\nasdfasdf\naa");
     print("\b\b\b");
+    myprintf("asdf%d", 123);
     // printx(get_pos());
     // update_cursor(4, 0);
 }

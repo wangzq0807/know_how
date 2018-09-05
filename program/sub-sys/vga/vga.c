@@ -134,3 +134,33 @@ _clear_line(int ln)
         linechars[i] = blank_char;
     }
 }
+
+char printbuf[1024];
+void
+myprintf(const char *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    vsprintf(printbuf, fmt, args);
+    va_end(args);
+}
+
+void
+vsprintf(char *buf, const char *fmt, va_list args)
+{
+    while(*fmt) {
+        if (*fmt == '%') {
+            switch(*++fmt) {
+                case 'd':
+                {
+                    int n = va_arg(args, int);
+                    printx(n);
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
+        fmt++;
+    }
+}
