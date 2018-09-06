@@ -1,5 +1,6 @@
 #include "asm.h"
 #include "vga.h"
+#include "string.h"
 
 uint32_t cursor_pos = 0;
 uint8_t bk_color = COL_BLACK;
@@ -134,33 +135,69 @@ _clear_line(int ln)
         linechars[i] = blank_char;
     }
 }
+char *
+hex2str(char *buf, int num)
+{
+    *buf++ = '0';
+    *buf++ = 'x';
+    char asciinum[] = "0123456789ABCDEF";
+    int len = sizeof(int) * 2;
+    while (--len >= 0) {
+        int tmp = num >> (len * 4) & 0xF;
+        if (tmp != 0)
+            *buf++ = asciinum[tmp];
+    }
+    return buf;
+}
+
+char *
+int2str(char *buf, int num)
+{
+    // char asciinum[] = "0123456789"
+    // int len = 8;
+
+    return NULL;
+}
 
 char printbuf[1024];
 void
-myprintf(const char *fmt, ...)
+printk(const char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
     vsprintf(printbuf, fmt, args);
+    print(printbuf);
     va_end(args);
 }
 
+#define COPY_MODE   0
+#define FMT_MODE    1
 void
 vsprintf(char *buf, const char *fmt, va_list args)
 {
-    while(*fmt) {
-        if (*fmt == '%') {
-            switch(*++fmt) {
-                case 'd':
-                {
-                    int n = va_arg(args, int);
-                    printx(n);
+    int mode = COPY_MODE;
+    for(; *fmt; ++fmt) {
+        if (mode == COPY_MODE) {
+            if (*fmt == '%') {
+                mode = FMT_MODE;
+                continue;
+            }
+            *buf++ = *fmt;
+        }
+        else if (mode == FMT_MODE) {
+            switch (*fmt) {
+                case 'X':
+                case 'x':
+                    buf = hex2str(buf, va_arg(args, int));
                     break;
-                }
+                case 'd':
+                case 'i':
+                    break;
                 default:
                     break;
             }
+            mode = COPY_MODE;
         }
-        fmt++;
     }
+    *buf = '\0';
 }

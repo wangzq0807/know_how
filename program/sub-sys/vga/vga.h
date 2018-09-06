@@ -33,7 +33,7 @@ typedef char* va_list;
 #define va_end(ap)
 
 void
-myprintf(const char *fmt, ...);
+printk(const char *fmt, ...);
 
 void
 vsprintf(char *buf, const char *fmt, va_list args);
