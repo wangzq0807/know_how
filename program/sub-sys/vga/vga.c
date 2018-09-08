@@ -135,28 +135,42 @@ _clear_line(int ln)
         linechars[i] = blank_char;
     }
 }
+
+#define HEX_FMT     1
+#define INT_FMT     2
+#define UINT_FMT    3
+
 char *
-hex2str(char *buf, int num)
+num2str(char *buf, int num, int flags)
 {
-    *buf++ = '0';
-    *buf++ = 'x';
-    char asciinum[] = "0123456789ABCDEF";
-    int len = sizeof(int) * 2;
-    while (--len >= 0) {
-        int tmp = num >> (len * 4) & 0xF;
-        if (tmp != 0)
-            *buf++ = asciinum[tmp];
+    if (flags == HEX_FMT) {
+        *buf++ = '0';
+        *buf++ = 'x';
     }
+    char tmpbuf[30];
+    char asciinum[] = "0123456789ABCDEF";
+    int i = 0;
+
+    if (flags == HEX_FMT) {
+        while (num > 0) {
+            int tmp = num & 0xF;
+            num = num >> 4;
+            tmpbuf[i++] = asciinum[tmp];
+        }
+    }
+    else if (flags == INT_FMT) {
+        while (num > 0) {
+            int tmp = num % 10;
+            num = num / 10;
+            tmpbuf[i++] = asciinum[tmp];
+        }
+    }
+
+    while(i > 0) {
+        *buf++ = tmpbuf[--i];
+    }
+
     return buf;
-}
-
-char *
-int2str(char *buf, int num)
-{
-    // char asciinum[] = "0123456789"
-    // int len = 8;
-
-    return NULL;
 }
 
 char printbuf[1024];
@@ -188,10 +202,11 @@ vsprintf(char *buf, const char *fmt, va_list args)
             switch (*fmt) {
                 case 'X':
                 case 'x':
-                    buf = hex2str(buf, va_arg(args, int));
+                    buf = num2str(buf, va_arg(args, int), HEX_FMT);
                     break;
                 case 'd':
                 case 'i':
+                    buf = num2str(buf, va_arg(args, int), INT_FMT);
                     break;
                 default:
                     break;

@@ -10,7 +10,7 @@ start_main()
     print("asdf\na\nasdfasdf\naa");
     print("asdf\na\nasdfasdf\naa");
     print("\b\b\b");
-    printk("aa%xadsfasdf", 123);
+    printk("aa%d%xadsfasdf", 1023450, 12345);
     // printx(get_pos());
     // update_cursor(4, 0);
 }
