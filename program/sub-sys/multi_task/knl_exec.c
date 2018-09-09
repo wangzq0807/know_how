@@ -7,7 +7,17 @@
 #include "page.h"
 #include "memory.h"
 
-#define ELF_FILE        (0x7c00 + 20*1024)
+static inline void
+push_str(const char *str) {
+    const int *num = (const int *)str;
+    int len = 5;
+    int cnt = len / sizeof(int) + 1;
+    while (cnt--) {
+        __asm__("pushl %0"::"r"(*num++):"memory");
+    }
+}
+
+#define ELF_FILE        (0xD000)
 
 int
 knl_exec(struct IrqFrame *irqframe)
@@ -27,7 +37,10 @@ knl_exec(struct IrqFrame *irqframe)
         pdt[npdt] = PAGE_FLOOR(new_page) | PAGE_WRITE | PAGE_USER | PAGE_PRESENT;
     }
     pte_t *pte = (pte_t *)(pdt[npdt] & 0xFFFFF000);
-    pte[npte] = PAGE_FLOOR(ELF_FILE) | PAGE_WRITE | PAGE_USER | PAGE_PRESENT;
+    pte[npte++] = PAGE_FLOOR(ELF_FILE) | PAGE_WRITE | PAGE_USER | PAGE_PRESENT;
+    pte[npte++] = PAGE_FLOOR(ELF_FILE+PAGE_SIZE) | PAGE_WRITE | PAGE_USER | PAGE_PRESENT;
+    pte[npte++] = PAGE_FLOOR(ELF_FILE+2*PAGE_SIZE) | PAGE_WRITE | PAGE_USER | PAGE_PRESENT;
+    pte[npte++] = PAGE_FLOOR(ELF_FILE+3*PAGE_SIZE) | PAGE_WRITE | PAGE_USER | PAGE_PRESENT;
     irqframe->if_EIP = elfheader->eh_entry;
     load_cr3(pdt);
 

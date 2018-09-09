@@ -129,21 +129,21 @@ static void
 task_2()
 {
     exec();
-    while( 1 ) {
-        if (acquire_mutex(&one_mutex) == 0) {
-            child_print();
-            release_mutex(&one_mutex);
-        }
-        else {
-            // __asm__ volatile("int $0x80");
-        }
-        // 延时
-        // NOTE : 如果从释放锁到重新申请锁的时间过短，
-        // 那么其他线程获得锁的几率就会非常小。
-        int cnt = 100000;
-        while(cnt--)
-            pause();
-    }
+    // while( 1 ) {
+    //     if (acquire_mutex(&one_mutex) == 0) {
+    //         child_print();
+    //         release_mutex(&one_mutex);
+    //     }
+    //     else {
+    //         // __asm__ volatile("int $0x80");
+    //     }
+    //     // 延时
+    //     // NOTE : 如果从释放锁到重新申请锁的时间过短，
+    //     // 那么其他线程获得锁的几率就会非常小。
+    //     int cnt = 100000;
+    //     while(cnt--)
+    //         pause();
+    // }
 }
 
 static void
