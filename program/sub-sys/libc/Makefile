@@ -1,11 +1,11 @@
 CC = gcc
 LD = ld
-CFLAGS = -g -O0  -m32 -Wall -Werror -nostdinc
+CFLAGS = -g -O2  -m32 -Wall -Werror -nostdinc -fno-builtin
 LDFLAGS = -m elf_i386 -static
 INCLUDES = -I ./ -I ./include
 BUILD_PATH = _build
 
-OBJECTS = one_task.o sys/syscall.o
+OBJECTS = one_task.o sys/syscalls.o crt.o
 # 自动生成depends文件名
 DEPS = $(OBJECTS:.o=.d)
 

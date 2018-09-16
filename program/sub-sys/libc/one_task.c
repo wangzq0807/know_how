@@ -1,8 +1,4 @@
-#include "sys/syscall.h"
-extern int main();
-int _start() {
-    return main();
-}
+#include "sys/syscalls.h"
 
 int main() {
     while (1) {
