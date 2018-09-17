@@ -1,6 +1,6 @@
 CC = gcc
 LD = ld
-CFLAGS = -g -O2  -m32 -Wall -Werror -nostdinc -fno-builtin
+CFLAGS = -g -O2  -m32 -Wall -Werror -nostdinc -fno-builtin -fno-stack-protector
 LDFLAGS = -m elf_i386 -static
 INCLUDES = -I ./ -I ./include
 BUILD_PATH = _build

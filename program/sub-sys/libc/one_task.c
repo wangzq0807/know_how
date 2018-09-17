@@ -1,11 +1,12 @@
-#include "sys/syscalls.h"
+#include "stdio.h"
 
 int main() {
-    while (1) {
-        open("/2M", 123, 456);
-        // 延时
-        int cnt = 100000;
-        while(cnt--);
-    }
+    char buf[1024] = {"asdf"};
+    int fd = open("/one_task", O_RDONLY, 0);
+    read(fd, buf, 1024);
+    buf[0] = 'a';
+    buf[4] = 0;
+    write(fd, buf, 4);
+
     return 0;
 }
