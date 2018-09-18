@@ -8,7 +8,7 @@
         "int $0x80 \n"      \
         :"=a"(ret)          \
         :"a"(num)           \
-        :"memory"           \
+        :"memory", "esp"    \
     );                      \
     ret;                    \
 })
@@ -22,7 +22,7 @@
         "addl $4, %%esp \n" \
         :"=a"(ret)          \
         :"a"(num), "r"(p1)  \
-        :"memory"           \
+        :"memory", "esp"    \
     );                      \
     ret;                    \
 })
@@ -37,7 +37,7 @@
         "addl $8, %%esp \n" \
         :"=a"(ret)          \
         :"a"(num), "r"(p2), "r"(p1) \
-        :"memory"           \
+        :"memory", "esp"    \
     );                      \
     ret;                    \
 })
@@ -53,7 +53,7 @@
         "addl $12, %%esp \n" \
         :"=a"(ret)          \
         :"a"(num), "r"(p3), "r"(p2), "r"(p1) \
-        :"memory"           \
+        :"memory", "esp"    \
     );                      \
     ret;                    \
 })

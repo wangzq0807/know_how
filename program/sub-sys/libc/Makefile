@@ -5,7 +5,7 @@ LDFLAGS = -m elf_i386 -static
 INCLUDES = -I ./ -I ./include
 BUILD_PATH = _build
 
-OBJECTS = one_task.o sys/syscalls.o crt.o
+OBJECTS = one_task.o crt.o
 # 自动生成depends文件名
 DEPS = $(OBJECTS:.o=.d)
 
