@@ -1,12 +1,21 @@
-#include "stdio.h"
+#include "unistd.h"
 
 int main() {
-    char buf[1024] = {"asdf"};
-    int fd = open("/one_task", O_RDONLY, 0);
-    read(fd, buf, 1024);
-    buf[0] = 'a';
-    buf[4] = 0;
-    write(fd, buf, 4);
+    char buf[1025] = {"asdf\n"};
+    int fd = open("/dev/tty", O_RDWR, 0);
+    if (fd == -1)
+        return 0;
+
+    while (1) {
+        int cnt = read(fd, buf, 1024);
+        if (cnt == -1 || cnt == 0)
+            continue;
+        // if (buf[cnt-1] == '\r') {
+        //     buf[cnt-1] = 0;
+        // }
+        write(fd, buf, cnt);
+    }
+    close(fd);
 
     return 0;
 }
