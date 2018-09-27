@@ -5,14 +5,26 @@ LDFLAGS = -m elf_i386 -static
 INCLUDES = -I ./ -I ./include
 BUILD_PATH = _build
 
-OBJECTS = one_task.o crt.o sys/syscalls.o
+CRT = usr/crt.o usr/syscalls.o usr/print.o
+BASH_OBJS = bash.o $(CRT)
+LS_OBJS = ls.o $(CRT)
+HELLO_OBJS = helloworld.o $(CRT)
+
+OBJECTSS = $(BASH_OBJS) $(LS_OBJS) $(HELLO_OBJS)
+EXES = bash ls helloworld
 # 自动生成depends文件名
-DEPS = $(OBJECTS:.o=.d)
+DEPS = $(OBJECTSS:.o=.d)
 
-all: one_task
-	@objdump -S one_task > one_task.sym
+all: $(EXES)
+	@objdump -S bash > bash.sym
 
-one_task: $(OBJECTS)
+bash: $(BASH_OBJS)
+	$(LD) $(LDFLAGS) $^ -o $@
+
+ls: $(LS_OBJS)
+	$(LD) $(LDFLAGS) $^ -o $@
+
+helloworld: $(HELLO_OBJS)
 	$(LD) $(LDFLAGS) $^ -o $@
 
 # 源文件编译规则
@@ -26,4 +38,4 @@ one_task: $(OBJECTS)
 -include $(DEPS)
 
 clean:
-	-rm $(OBJECTS) $(DEPS) one_task
+	-rm $(OBJECTSS) $(DEPS) $(EXES) bash.sym

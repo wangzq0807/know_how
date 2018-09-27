@@ -1,6 +1,9 @@
 #include "unistd.h"
+#include "stdio.h"
 
-int main() {
+int
+main(int argc, const char **argv)
+{
     char buf[1025] = {"asdf\n"};
     int fd = open("/dev/tty", O_RDWR, 0);
     if (fd == -1)
@@ -13,6 +16,7 @@ int main() {
         // if (buf[cnt-1] == '\r') {
         //     buf[cnt-1] = 0;
         // }
+        
         write(fd, buf, cnt);
     }
     close(fd);

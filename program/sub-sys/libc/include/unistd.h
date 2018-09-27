@@ -1,6 +1,7 @@
 #ifndef __SYSCALLS_H__
 #define __SYSCALLS_H__
 
+#include "sys/types.h"
 #define O_RDONLY    0x1
 #define O_WRONLY    0x2
 #define O_NONBLOCK  0x4
