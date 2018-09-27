@@ -1,4 +1,6 @@
 #include "stdio.h"
+#include "unistd.h"
+#include "string.h"
 
 #define COPY_MODE   0
 #define FMT_MODE    1
@@ -52,7 +54,7 @@ printf(const char *fmt, ...)
     va_list args;
     va_start(args, fmt);
     vsprintf(printbuf, fmt, args);
-    // console_print(printbuf);
+    write(0, printbuf, strlen(printbuf));
     va_end(args);
 }
 
