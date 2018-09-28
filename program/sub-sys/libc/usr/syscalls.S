@@ -4,7 +4,8 @@
 .global func;               \
 func:                       \
     movl $num, %eax;        \
-    int $0x80
+    int $0x80;              \
+    ret
 
 .text
 SYSCALL(1, exit)
