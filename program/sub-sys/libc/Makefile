@@ -9,9 +9,10 @@ CRT = usr/crt.o usr/syscalls.o usr/print.o
 BASH_OBJS = bash.o $(CRT)
 LS_OBJS = ls.o $(CRT)
 HELLO_OBJS = helloworld.o $(CRT)
+ECHO_OBJS = echo.o $(CRT)
 
-OBJECTSS = $(BASH_OBJS) $(LS_OBJS) $(HELLO_OBJS)
-EXES = bash ls helloworld
+OBJECTSS = $(BASH_OBJS) $(LS_OBJS) $(HELLO_OBJS) $(ECHO_OBJS)
+EXES = bash ls helloworld echo
 # 自动生成depends文件名
 DEPS = $(OBJECTSS:.o=.d)
 
@@ -25,6 +26,9 @@ ls: $(LS_OBJS)
 	$(LD) $(LDFLAGS) $^ -o $@
 
 helloworld: $(HELLO_OBJS)
+	$(LD) $(LDFLAGS) $^ -o $@
+
+echo: $(ECHO_OBJS)
 	$(LD) $(LDFLAGS) $^ -o $@
 
 # 源文件编译规则
