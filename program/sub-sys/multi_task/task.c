@@ -2,71 +2,20 @@
 #include "log.h"
 #include "asm.h"
 #include "lock.h"
+#include "memory.h"
+#include "page.h"
+#include "irq.h"
 
-/* 中断描述符 */
-struct X86Desc idt_table[256] = { 0 };
-struct X86DTR idt_ptr = { 0 };
-/* 全局描述符 */
-struct X86Desc gdt_table[7] = { 0 };
-struct X86DTR gdt_ptr = { 0 };
-/* 当前任务 */
-uint32_t current = 1;
 /* 任务一 */
-struct X86TSS tss1 = { 0 };
-uint8_t tss1_kernal_stack[1024] = { 0 };
-uint8_t tss1_user_stack[1024] = { 0 };
-struct X86Desc tss1_ldt[3] = { 0 };
-/* 任务二 */
-struct X86TSS tss2 = { 0 };
-uint8_t tss2_kernal_stack[1024] = { 0 };
-uint8_t tss2_user_stack[1024] = { 0 };
-struct X86Desc tss2_ldt[3] = { 0 };
+struct Task task1;
 
-/* 局部描述符 */
-struct X86Desc ldt_table_1[3] = { 0 };
-struct X86DTR ldt_ptr_1 = { 0 };
-struct X86Desc ldt_table_2[3] = { 0 };
-struct X86DTR ldt_ptr_2 = { 0 };
-
-extern void on_timer_intr();
-extern void on_ignore_intr();
-extern void on_syscall_intr();
 static void task_1();
 static void task_2();
 
 // 竞争资源
-struct Mutex my_mutex;
+struct Mutex one_mutex;
 uint32_t conf_res1 = 1;
 uint32_t conf_res2 = 1;
-
-/* 中断门: 中断正在处理时,IF清0,从而屏蔽其他中断 */
-void
-set_intr_gate(int32_t num, void *func_addr)
-{
-    const uint32_t selector = KNL_CS;
-    const uint32_t offset = (uint32_t)func_addr;
-    idt_table[num].d_low = (selector << 16) | (offset & 0xFFFF);
-    idt_table[num].d_high = (offset & 0xFFFF0000) | GATE_INTR_FLAG;
-}
-
-/* 陷阱门: 中断正在处理时,IF不清零,可响应更高优先级的中断 */
-void
-set_trap_gate(int32_t num, void *func_addr)
-{
-    const uint32_t selector = KNL_CS;
-    const uint32_t offset = (uint32_t)func_addr;
-    idt_table[num].d_low = (selector << 16) | (offset & 0xFFFF);
-    idt_table[num].d_high = (offset & 0xFFFF0000) | GATE_TRAP_FLAG;
-}
-
-void
-set_sys_call()
-{
-    const uint32_t selector = KNL_CS;
-    const uint32_t offset = (uint32_t)on_syscall_intr;
-    idt_table[0x80].d_low = (selector << 16) | (offset & 0xFFFF);
-    idt_table[0x80].d_high = (offset & 0xFFFF0000) | 0xef00;
-}
 
 static void
 _init_8259A()
@@ -97,146 +46,53 @@ _init_timer()
     outb(high, 0x40);   /* 后写高字节 */
 }
 
-static void
-setup_idt()
-{
-    /* 设置默认中断 */
-    for (int32_t i = 0; i < 256; ++i) {
-        set_intr_gate(i, &on_ignore_intr);
-    }
-    /* 设置时钟中断 */
-    set_intr_gate(INTR_TIMER, &on_timer_intr);
-    /* 系统调用 */
-    set_sys_call();
-    /* 重新加载idt */
-    const uint32_t base_addr = (uint32_t)(&idt_table);
-    idt_ptr.r_limit = 256*8 -1;
-    idt_ptr.r_addr = base_addr;
-    lidt(&idt_ptr);
-}
-
-static void
-_setup_segment_desc(struct X86Desc* desc, uint32_t base, uint32_t limit, uint8_t type, uint8_t dpl, uint8_t prop)
-{
-    const uint32_t SEG_LIMIT_16 = limit & 0xFFFF;        // 取limit的0-15位
-    const uint32_t SEG_LIMIT_20 = limit & 0xF0000;       // 取limit的19-16位
-    const uint32_t SEG_BASE_16 = base & 0xFFFF;          // 取base的0-15位
-    const uint32_t SEG_BASE_24 = base & 0xFF0000;        // 取base的23-16位
-    const uint32_t SEG_BASE_32 = base & 0xFF000000;      // 取base的31-24位
-
-    const uint32_t SEG_TYPE = (type & 0xF) << 8;         // 类型
-    const uint32_t SEG_DPL  = (dpl & 0xF) << 12;         // 特权级0
-    const uint32_t SEG_PROP = (prop & 0xF) << 20;        // 粒度,操作数位数,等
-
-    desc->d_low = SEG_BASE_16 << 16 | SEG_LIMIT_16;
-    desc->d_high = SEG_BASE_32 | SEG_PROP | SEG_LIMIT_20 |
-                    SEG_DPL | SEG_TYPE | (SEG_BASE_24 >> 16);
-}
-
-static void
-_setup_code_desc(struct X86Desc* desc, uint32_t base, uint32_t limit, uint8_t dpl)
-{
-    const uint8_t CS_TYPE = 0xA;        // 非一致，可读
-    const uint8_t CS_PROP = 0xC;        // 粒度4KB，32位操作数
-    _setup_segment_desc(desc, base, limit, CS_TYPE, dpl, CS_PROP);
-}
-
-static void
-_setup_data_desc(struct X86Desc* desc, uint32_t base, uint32_t limit, uint8_t dpl)
-{
-    const uint32_t DS_TYPE = 0x2;       // 非一致，可写
-    const uint32_t DS_PROP = 0xC;       // 粒度4KB，32位操作数
-    _setup_segment_desc(desc, base, limit, DS_TYPE, dpl, DS_PROP);
-}
-
-static void
-_setup_tss_desc(struct X86Desc* desc, uint32_t base, uint32_t limit, uint8_t dpl)
-{
-    const uint32_t TSS_TYPE = 0x9;      // 非忙
-    const uint32_t TSS_PROP = 0x0;      // 大于等于104字节
-    _setup_segment_desc(desc, base, limit, TSS_TYPE, dpl, TSS_PROP);
-}
-
-static void
-_setup_ldt_desc(struct X86Desc* desc, uint32_t base, uint32_t limit, uint8_t dpl)
-{
-    const uint32_t LDT_TYPE = 0x2;      // LDT
-    const uint32_t LDT_PROP = 0x0;      //
-    _setup_segment_desc(desc, base, limit, LDT_TYPE, dpl, LDT_PROP);
-}
-
-
-static void
-setup_gdt()
-{
-    const uint8_t KNL_DPL = 0x9;        // 内核段DPL : 存在，特权级0，数据段/代码段
-    _setup_code_desc(&gdt_table[1], 0, 0xFFFFF, KNL_DPL);
-    _setup_data_desc(&gdt_table[2], 0, 0xFFFFF, KNL_DPL);
-
-    const uint8_t TSS_DPL = 0x8;        // 任务状态段DPL : 存在，特权级0，系统段
-    _setup_tss_desc(&gdt_table[3], (uint32_t)&tss1, 103, TSS_DPL);
-    const uint8_t LDT_DPL = 0x8;        // LDT段DPL : 存在，特权级0，系统段
-    _setup_ldt_desc(&gdt_table[4], (uint32_t)&tss1_ldt, 24, LDT_DPL);
-
-    _setup_tss_desc(&gdt_table[5], (uint32_t)&tss2, 103, TSS_DPL);
-    _setup_ldt_desc(&gdt_table[6], (uint32_t)&tss2_ldt, 24, LDT_DPL);
-
-    /* 重新加载gdt */
-    const uint32_t base_addr = (uint32_t)(&gdt_table);
-    gdt_ptr.r_limit = 7*8 -1;
-    gdt_ptr.r_addr = base_addr;
-    lgdt(&gdt_ptr);
-    reload_sregs(KNL_CS, KNL_DS);
-}
-
-static void
-setup_ldt()
-{
-    const uint8_t USR_DPL = 0xF;
-    _setup_code_desc(&tss1_ldt[1], 0, 0xFFFFF, USR_DPL);
-    _setup_data_desc(&tss1_ldt[2], 0, 0xFFFFF, USR_DPL);
-    _setup_code_desc(&tss2_ldt[1], 0, 0xFFFFF, USR_DPL);
-    _setup_data_desc(&tss2_ldt[2], 0, 0xFFFFF, USR_DPL);
-}
-
-static void
-setup_tss()
-{
-    tss1.t_SS_0 = KNL_DS;
-    tss1.t_ESP_0 = (uint32_t)&tss1_kernal_stack[1023];
-    tss1.t_EIP = (uint32_t)task_1;
-    tss1.t_LDT = (uint32_t)0x20;
-
-    tss2.t_SS_0 = KNL_DS;
-    tss2.t_ESP_0 = (uint32_t)&tss2_kernal_stack[1023];
-
-    tss2.t_EFLAGS = 0x200;  // NOTE: 允许中断
-    tss2.t_DS = 0x17;
-    tss2.t_SS = 0x17;
-    tss2.t_ESP = (uint32_t)&tss2_user_stack[1023];
-    tss2.t_CS = 0xF;
-    tss2.t_EIP = (uint32_t)task_2;
-    tss2.t_LDT = (uint32_t)0x30;
-}
-
-void switch_task()
+void
+switch_task()
 {
     // NOTE：task1经过跳转到task2，task2再跳转回task1时，会从ljmp的下一条指令开始执行。
     // NOTE：下面这种切换方式是抢占式的，单核情况下，当两个线程需要同步时，加锁必须是原子操作
-    // NOTE：对与非抢占式的内核，加锁无需原子操作
-    if (current == 1) {
-        current = 2;
-        __asm__ volatile (
-            "ljmp $0x28, $0 \n"
-        );
+    // NOTE：对于非抢占式的内核，加锁无需原子操作
+    struct Task *cur = current_task();
+    if (cur->ts_pid == 0 && cur->ts_child_head ) {
+        switch_tss(&cur->ts_child_head->ts_tss);
     }
-    else {
-        current = 1;
-        __asm__ volatile (
-            "ljmp $0x18, $0 \n"
-        );
+    else if (cur->ts_pid == 1) {
+        switch_tss(&cur->ts_parent->ts_tss);
     }
 }
+
+#define fork()              \
+({                          \
+    pid_t pid = 0;          \
+    __asm__ volatile (      \
+        "movl $0, %%eax \n" \
+        "int $0x80 \n"      \
+        :"=a"(pid)          \
+    );                      \
+    pid;                    \
+})
+
+#define child_print()       \
+({                          \
+    int ret = 0;            \
+    __asm__ volatile (      \
+        "movl $1, %%eax \n" \
+        "int $0x80 \n"      \
+        :"=a"(ret)          \
+    );                      \
+    ret;                    \
+})
+
+#define exec()              \
+({                          \
+    int ret = 0;            \
+    __asm__ volatile (      \
+        "movl $2, %%eax \n" \
+        "int $0x80 \n"      \
+        :"=a"(ret)          \
+    );                      \
+    ret;                    \
+})
 
 static void
 task_1()
@@ -246,21 +102,19 @@ task_1()
         "mov %%ax, %%ds \n"
         : : : "%eax"
     );
+    pid_t pid = fork();
+
+    if (pid == 0)
+        task_2();
 
     while( 1 ) {
-        if (acquire_mutex(&my_mutex) == 0) {
+        if (acquire_mutex(&one_mutex) == 0) {
             // 下面是受保护的代码
-            conf_res1 = 1111;
-            conf_res2 = 2222;
-            __asm__ volatile("nop":::"memory");
-            if (conf_res1 != 1111 || conf_res2 != 2222)
-                print("A");
-            else
-                print("C");
-            release_mutex(&my_mutex);
+            print("P");
+            release_mutex(&one_mutex);
         }
         else {
-            __asm__ volatile("int $0x80");
+            // __asm__ volatile("int $0x80");
         }
         // 延时
         // NOTE : 如果从释放锁到重新申请锁的时间过短，
@@ -274,84 +128,66 @@ task_1()
 static void
 task_2()
 {
-    __asm__ volatile (
-        "mov $0x17, %%ax \n"
-        "mov %%ax, %%ds \n"
-        : : : "eax"
-    );
+    exec();
+    // while( 1 ) {
+    //     if (acquire_mutex(&one_mutex) == 0) {
+    //         child_print();
+    //         release_mutex(&one_mutex);
+    //     }
+    //     else {
+    //         // __asm__ volatile("int $0x80");
+    //     }
+    //     // 延时
+    //     // NOTE : 如果从释放锁到重新申请锁的时间过短，
+    //     // 那么其他线程获得锁的几率就会非常小。
+    //     int cnt = 100000;
+    //     while(cnt--)
+    //         pause();
+    // }
+}
 
-    while( 1 ) {
-        if (acquire_mutex(&my_mutex) == 0) {
-            // 下面是受保护的代码
-            conf_res2 = 4444;
-            conf_res1 = 3333;
-            __asm__ volatile("nop":::"memory");
-            if (conf_res1 != 3333 || conf_res2 != 4444)
-                print("B");
-            else
-                print("D");
-            release_mutex(&my_mutex);
-        }
-        else {
-            __asm__ volatile("int $0x80");
-        }
-        // 延时
-        // NOTE : 如果从释放锁到重新申请锁的时间过短，
-        // 那么其他线程获得锁的几率就会非常小。
-        int cnt = 100000;
-        while(cnt--)
-            pause();
+static void
+setup_first_task()
+{
+    task1.ts_pid = 0;
+    uint8_t *ks_page = alloc_page();
+    uint8_t *us_page = alloc_page();
+    ((uint32_t *)ks_page)[0] = (uint32_t)&task1;
+
+    task1.ts_tss.t_SS_0 = KNL_DS;
+    task1.ts_tss.t_ESP_0 = (uint32_t)&ks_page[PAGE_SIZE];
+    task1.ts_tss.t_ESP = (uint32_t)&us_page[PAGE_SIZE];
+
+    uint32_t *pdt = (uint32_t*)alloc_page();
+    uint32_t *pte = (uint32_t*)alloc_page();
+    pdt[0] = PAGE_FLOOR((uint32_t)pte) | PAGE_PRESENT | PAGE_WRITE | PAGE_USER;
+    uint32_t addr = 0;
+    for (int i = 0; i < 1024; ++i) {
+        pte[i] = PAGE_FLOOR(addr) | PAGE_PRESENT | PAGE_WRITE | PAGE_USER;
+        addr += PAGE_SIZE;
     }
-}
+    // Note: 任务切换时,CR3不会被自动保存
+    task1.ts_tss.t_CR3 = (uint32_t)pdt;
+    task1.ts_tss.t_LDT = KNL_LDT;
 
-void
-on_timer_handler()
-{
-    /* 设置8259A的OCW2,发送结束中断命令 */
-    outb(0x20, 0x20);
-    outb(0x20, 0xA0);
-    switch_task();
-}
-
-void
-on_ignore_handler()
-{
-    /* 设置8259A的OCW2,发送结束中断命令 */
-    outb(0x20, 0x20);
-    outb(0x20, 0xA0);
-}
-
-void
-on_syscall_handler()
-{
-    __asm__ volatile (
-        "mov $0x10, %%ax \n"
-        "mov %%ax, %%ds \n"
-        : : : "eax"
-    );
-
-    switch_task();
+    load_cr3(pdt);
 }
 
 void
 start_task()
 {
-    init_mutex(&my_mutex);
+    init_mutex(&one_mutex);
 
     cli();
     setup_idt();
     setup_gdt();
-    setup_ldt();
-    setup_tss();
 
     _init_8259A();
     _init_timer();
 
-    /* 跳转到用户空间:任务一 */
-    ltr(0x18);
-    lldt(0x20);
-
+    setup_first_task();
+    enable_paging();
     sti();
-
-    switch_to_user(0xF, 0x17, &tss1_user_stack[1023], task_1);
+    /* 开始第一个进程 */
+    start_first_task(&task1.ts_tss, task_1);
 }

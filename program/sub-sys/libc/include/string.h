@@ -1,12 +1,11 @@
 #ifndef __STRING_H__
 #define __STRING_H__
-#include "defs.h"
+#include "sys/types.h"
 
 static inline void memcpy(void *dest, const void *src, size_t size) {
-    size--;
-    do {
+    while (size--) {
         ((uint8_t*)dest)[size] = ((uint8_t*)src)[size];
-    } while (size--);
+    };
 }
 
 static inline void memset(void *dest, int value, size_t size) {
@@ -71,6 +70,43 @@ static inline const char *strstr(const char *str, const char *need) {
         }
     }
     return str;
+}
+
+static inline const char *strcpy(char *dst, const char *src) {
+    const char *ret = dst;
+    while (*src) {
+        *dst++ = *src++;
+    }
+    return ret;
+}
+
+static inline char *strsep(char **str, const char *delim) {
+    char *ret = *str;
+    char *itr = *str;
+    const char *diter = delim;
+    for (; *itr; ++itr) {
+        int isdelim = 0;
+        for (; *diter; ++diter) {
+            if (*itr == *diter) {
+                isdelim = 1;
+                break;
+            }
+        }
+        diter = delim;
+        if (isdelim) {
+            if (itr == ret)
+                ret++;
+            else {
+                *itr++ = 0;
+                break;
+            }
+        }
+    }
+    *str = itr;
+    if (*ret)
+        return ret;
+    else
+        return NULL;
 }
 
 #endif
