@@ -6,12 +6,12 @@
 int
 main(int argc, const char *argv[])
 {
-    if (argc < 2) {
-        printf("USAGE: ln target linkname\n");
+    if (argc < 1) {
+        printf("USAGE: rm filepath\n");
         return 0;
     }
-    if (link(argv[0], argv[1]) == -1) {
-        printf("can not create hard link!\n");
+    if (unlink(argv[0]) == -1) {
+        printf("can not delete target file\n");
     }
     return 0;
 }

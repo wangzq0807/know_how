@@ -2,7 +2,7 @@
 #include "stdio.h"
 #include "string.h"
 
-#define HOSTNAME    ("smash$")
+#define HOSTNAME    ("smash$ ")
 
 int
 main(int argc, const char **argv)

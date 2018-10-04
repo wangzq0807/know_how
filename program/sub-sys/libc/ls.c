@@ -30,7 +30,8 @@ main(int argc, const char **argv)
         struct Direction *dirs = (struct Direction*)buf;
         int i = 0;
         for (; i < rdcnt/sizeof(struct Direction); ++i) {
-            printf("%s\n", dirs[i].dr_name);
+            if (dirs[i].dr_inode != 0)
+                printf("%s\n", dirs[i].dr_name);
         }
         if (rdcnt < 1024)
             break;

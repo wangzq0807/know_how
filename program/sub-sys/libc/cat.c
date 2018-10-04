@@ -7,6 +7,7 @@ main(int argc, const char *argv[])
 {
     if (argc < 1) {
         printf("USAGE: cat filepath\n");
+        return 0;
     }
     int fd = open(argv[0], O_RDONLY, 0);
     if (fd == -1) {
