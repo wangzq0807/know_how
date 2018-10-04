@@ -32,5 +32,6 @@ extern int chown(const char *pathname, int owner, int group);
 extern int mkdir(const char *pathname, int mode);
 extern int rmdir(const char *pathname);
 extern int pause(void);
+extern int getpid(void);
 
 #endif // __SYSCALLS_H__
