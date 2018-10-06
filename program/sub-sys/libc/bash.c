@@ -4,6 +4,10 @@
 
 #define HOSTNAME    ("smash$ ")
 
+void change_dir(char *cmd);
+void run_cmd(char *cmd);
+char *split_cmd(char *cmd);
+
 int
 main(int argc, const char **argv)
 {
@@ -13,8 +17,8 @@ main(int argc, const char **argv)
     if (fd == -1)
         return 0;
 
-    printf(HOSTNAME);
     while (1) {
+        printf(HOSTNAME);
         int cnt = read(fd, buf, 1024);
         if (cnt == -1 || cnt == 0)
             continue;
@@ -22,39 +26,82 @@ main(int argc, const char **argv)
             buf[cnt] = 0;
         }
 
-        if (strncmp(buf, "cd ", 3) == 0) {
-            int dirstart = 3;
-            buf[cnt-1] = 0;
-            for (; buf[dirstart] != 0 && buf[dirstart] == ' '; ++dirstart);
-            int r = chdir(buf+dirstart);
-            if (r == -1) {
-                printf("failed to open target dir\n");
-            }
-            printf(HOSTNAME);
-            continue;
-        }
+        int pipefd[2] = {-1, -1};
+        int firstcmd = 1;
+        int prepipefd[2] = {-1, -1};
+        char *cmds = strim(buf, " \r\n\t");
+        while (*cmds) {
+            char *cmd = strsep(&cmds, "|");
+            cmd = strim(cmd, " \r\n\t");
 
-        int pid = fork();
-        if (pid == 0) {
-            char *params[10] = { NULL };
-            char *tmp = buf;
-            for (int i = 0; i < 10; ++i) {
-                char *token = strsep(&tmp, " \r");
-                if (token == NULL)  break;
-                params[i] = token;
+            if (strncmp(buf, "cd ", 3) == 0) {
+                change_dir(buf+3);
+                continue;
             }
 
-            if (execve(params[0], params+1, NULL) == -1) {
-                printf("exec %s failed\n", params[0]);
-                exit(0);
+            if (*cmds != 0) {
+                pipe(pipefd);
             }
-        }
-        else if (pid > 0) {
-            waitpid(pid, NULL, 0);
-            printf(HOSTNAME);
+
+            int pid = fork();
+            if (pid == 0) {
+                if (*cmds != 0) {
+                    close(pipefd[0]);
+                    close(stdout);
+                    int dufd = dup(pipefd[1]);
+                    if (dufd != stdout)
+                        printf("redirect stdout failed\n");
+                }
+                if (firstcmd != 1) {
+                    close(prepipefd[1]);
+                    close(stdin);
+                    int dufd = dup(prepipefd[0]);
+                    if (dufd != stdin)
+                        printf("redirect stdin failed\n");
+                }
+                run_cmd(cmd);
+            }
+            else if (pid > 0) {
+                waitpid(pid, NULL, 0);
+                if (firstcmd != 1) {
+                    close(prepipefd[0]);
+                    close(prepipefd[1]);
+                }
+                firstcmd = 0;
+                prepipefd[0] = pipefd[0];
+                prepipefd[1] = pipefd[1];
+            }
         }
     }
     close(fd);
 
     return 0;
+}
+
+void
+run_cmd(char *buf)
+{
+    char *params[11] = { NULL };
+    char *tmp = buf;
+    for (int i = 0; i < 10; ++i) {
+        char *token = strsep(&tmp, " \t");
+        if (token == NULL)  break;
+        params[i] = token;
+    }
+
+    if (execve(params[0], params+1, NULL) == -1) {
+        printf("exec %s failed\n", params[0]);
+        exit(0);
+    }
+    exit(0);
+}
+
+void
+change_dir(char *dir)
+{
+    dir = strim(dir, " \r\n\t");
+    int r = chdir(dir);
+    if (r == -1) {
+        printf("failed to open target dir\n");
+    }
 }

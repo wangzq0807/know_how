@@ -14,6 +14,9 @@ typedef char* va_list;
 })
 #define va_end(ap)
 
+#define stdin 0
+#define stdout 1
+
 void
 printf(const char *fmt, ...);
 
