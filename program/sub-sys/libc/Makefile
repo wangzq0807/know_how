@@ -13,9 +13,10 @@ ECHO_OBJS = echo.o $(CRT)
 LN_OBJS = ln.o $(CRT)
 CAT_OBJS = cat.o $(CRT)
 RM_OBJS = rm.o $(CRT)
+PIPECHO_OBJS = pipecho.o $(CRT)
 
-OBJECTSS = $(BASH_OBJS) $(LS_OBJS) $(HELLO_OBJS) $(ECHO_OBJS) $(LN_OBJS) $(CAT_OBJS) $(RM_OBJS)
-EXES = bash ls helloworld echo ln cat rm
+OBJECTSS = $(BASH_OBJS) $(LS_OBJS) $(HELLO_OBJS) $(ECHO_OBJS) $(LN_OBJS) $(CAT_OBJS) $(RM_OBJS) $(PIPECHO_OBJS)
+EXES = bash ls helloworld echo ln cat rm pipecho
 # 自动生成depends文件名
 DEPS = $(OBJECTSS:.o=.d)
 
@@ -41,6 +42,9 @@ cat: $(CAT_OBJS)
 	$(LD) $(LDFLAGS) $^ -o $@
 
 rm: $(RM_OBJS)
+	$(LD) $(LDFLAGS) $^ -o $@
+
+pipecho: $(PIPECHO_OBJS)
 	$(LD) $(LDFLAGS) $^ -o $@
 
 # 源文件编译规则

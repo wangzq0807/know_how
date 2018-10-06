@@ -54,7 +54,7 @@ printf(const char *fmt, ...)
     va_list args;
     va_start(args, fmt);
     vsprintf(printbuf, fmt, args);
-    write(0, printbuf, strlen(printbuf));
+    write(stdout, printbuf, strlen(printbuf));
     va_end(args);
 }
 

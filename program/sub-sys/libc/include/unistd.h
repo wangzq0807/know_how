@@ -33,5 +33,7 @@ extern int mkdir(const char *pathname, int mode);
 extern int rmdir(const char *pathname);
 extern int pause(void);
 extern int getpid(void);
+extern int pipe(int fd[2]);
+extern int dup(int fd);
 
 #endif // __SYSCALLS_H__
