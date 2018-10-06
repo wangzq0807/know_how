@@ -11,6 +11,10 @@ char *split_cmd(char *cmd);
 int
 main(int argc, const char **argv)
 {
+    int mypid = getpid();
+    if (mypid != 1) {
+        exit(0);
+    }
     char buf[1025] = {0};
     int fd = 0;
     fd = open("/dev/tty", O_RDWR, 0);
@@ -81,6 +85,7 @@ main(int argc, const char **argv)
 void
 run_cmd(char *buf)
 {
+    char execfile[128] = "/bin/";
     char *params[11] = { NULL };
     char *tmp = buf;
     for (int i = 0; i < 10; ++i) {
@@ -88,9 +93,18 @@ run_cmd(char *buf)
         if (token == NULL)  break;
         params[i] = token;
     }
+    if (params[0][0] == 0)
+        exit(0);
 
-    if (execve(params[0], params+1, NULL) == -1) {
-        printf("exec %s failed\n", params[0]);
+    if (params[0][0] == '/' || params[0][0] == '.') {
+        strcpy(execfile, params[0]);
+    }
+    else {
+        strcat(execfile, params[0]);
+    }
+
+    if (execve(execfile, params+1, NULL) == -1) {
+        printf("exec %s failed\n", execfile);
         exit(0);
     }
     exit(0);
